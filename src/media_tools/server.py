@@ -144,6 +144,34 @@ def pdf_delete_pages(input_path: str, output: str, pages: list[int]) -> str:
     return PDFToolkit.delete_pages(input_path, output, pages)
 
 
+@mcp.tool(name="pdf_sign")
+def pdf_sign(
+    input_path: str, output: str, signature_image: str,
+    page: int = 1, x: float = 50, y: float = 50,
+    width: float = 150, height: float = 50,
+) -> str:
+    """Add a signature image to a specific page of a PDF."""
+    return PDFToolkit.sign(input_path, output, signature_image, page, x, y, width, height)
+
+
+@mcp.tool(name="pdf_fill_form")
+def pdf_fill_form(input_path: str, output: str, fields: dict[str, str]) -> str:
+    """Fill PDF form fields. fields: dict mapping field names to values."""
+    return PDFToolkit.fill_form(input_path, output, fields)
+
+
+@mcp.tool(name="pdf_compare")
+def pdf_compare(input_path: str, other_path: str) -> str:
+    """Compare two PDFs and report page count and text differences."""
+    return PDFToolkit.compare(input_path, other_path)
+
+
+@mcp.tool(name="pdf_to_a")
+def pdf_to_a(input_path: str, output: str, pdf_a_version: str = "1b") -> str:
+    """Convert PDF to PDF/A archival format (requires Ghostscript)."""
+    return PDFToolkit.pdf_to_a(input_path, output, pdf_a_version)
+
+
 @mcp.tool(name="pdf_to_markdown")
 def pdf_to_markdown(
     input_path: str, output: str | None = None,

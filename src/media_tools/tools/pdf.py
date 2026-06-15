@@ -11,7 +11,7 @@ import pdfplumber
 import pypdf
 import pypdfium2 as pdfium
 
-from media_tools.utils import logger, validate_input, validate_output_dir
+from media_tools.utils import _subprocess_with_logging, logger, validate_input, validate_output_dir
 
 try:
     import liteparse
@@ -863,6 +863,188 @@ class PDFToolkit:
             return f"Error: {exc}"
 
         return f"Pages deleted → {output}"
+
+    @staticmethod
+    def sign(
+        input_path: str,
+        output: str,
+        signature_image: str,
+        page: int = 1,
+        x: float = 50,
+        y: float = 50,
+        width: float = 150,
+        height: float = 50,
+    ) -> str:
+        """Add a signature image to a specific page of a PDF."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_input(signature_image)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            reader = pypdf.PdfReader(input_path)
+            writer = pypdf.PdfWriter()
+
+            from reportlab.pdfgen import canvas
+
+            if page < 1 or page > len(reader.pages):
+                return f"Error: page {page} out of range (1-{len(reader.pages)})"
+
+            # Create signature overlay
+            packet = io.BytesIO()
+            c = canvas.Canvas(packet, pagesize=reader.pages[0].mediabox)
+            c.drawImage(signature_image, x, y, width=width, height=height, mask="auto")
+            c.save()
+            packet.seek(0)
+
+            sig_overlay = pypdf.PdfReader(packet)
+
+            for i, page_obj in enumerate(reader.pages):
+                if i + 1 == page:
+                    page_obj.merge_page(sig_overlay.pages[0])
+                writer.add_page(page_obj)
+
+            writer.write(output)
+            writer.close()
+            logger.info("Signed PDF → %s", output)
+        except Exception as exc:
+            logger.error("sign failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"PDF signed → {output} (page {page})"
+
+    @staticmethod
+    def fill_form(
+        input_path: str,
+        output: str,
+        fields: dict[str, str],
+    ) -> str:
+        """Fill PDF form fields.
+
+        fields: dict mapping field names to values.
+        Example: {"name": "John Doe", "date": "2025-01-01"}
+        """
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            reader = pypdf.PdfReader(input_path)
+            writer = pypdf.PdfWriter()
+
+            if not reader.get_fields():
+                return "Error: PDF has no form fields"
+
+            for page in reader.pages:
+                writer.add_page(page)
+
+            # Fill fields
+            fields_obj = reader.get_fields()
+            if fields_obj:
+                writer.update_page_form_field_values(
+                    writer.pages[0], fields, append=True
+                )
+
+            writer.write(output)
+            writer.close()
+            logger.info("Form filled → %s", output)
+        except Exception as exc:
+            logger.error("fill_form failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Form filled → {output}"
+
+    @staticmethod
+    def compare(input_path: str, other_path: str) -> str:
+        """Compare two PDFs and report differences.
+
+        Returns page count comparison and text-level diff.
+        """
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_input(other_path)
+        if err:
+            return err
+
+        try:
+            reader1 = pypdf.PdfReader(input_path)
+            reader2 = pypdf.PdfReader(other_path)
+
+            pages1 = len(reader1.pages)
+            pages2 = len(reader2.pages)
+
+            lines = [
+                f"File 1: {input_path} ({pages1} pages)",
+                f"File 2: {other_path} ({pages2} pages)",
+                f"Page count {'matches' if pages1 == pages2 else 'differs'}",
+            ]
+
+            if pages1 == pages2:
+                for i in range(pages1):
+                    text1 = reader1.pages[i].extract_text() or ""
+                    text2 = reader2.pages[i].extract_text() or ""
+                    if text1.strip() != text2.strip():
+                        lines.append(f"Page {i + 1}: DIFFERENT ({len(text1)} vs {len(text2)} chars)")
+                    else:
+                        lines.append(f"Page {i + 1}: identical")
+            else:
+                lines.append(f"Cannot compare text: page counts differ ({pages1} vs {pages2})")
+
+            result = "\n".join(lines)
+            logger.info("PDF compare done")
+            return result
+        except Exception as exc:
+            logger.error("compare failed: %s", exc)
+            return f"Error: {exc}"
+
+    @staticmethod
+    def pdf_to_a(input_path: str, output: str, pdf_a_version: str = "1b") -> str:
+        """Convert PDF to PDF/A archival format.
+
+        pdf_a_version: '1a', '1b', '2a', '2b', '3a', '3b', '3u'
+        Uses Ghostscript for conversion.
+        """
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            cmd = [
+                "gs",
+                "-dPDFA=" + pdf_a_version,
+                "-dPDFAOutputIntent=",
+                "-sPDFCOnvertToRGB",
+                "-dBATCH",
+                "-dNOPAUSE",
+                "-sDEVICE=pdfwrite",
+                f"-sOutputFile={output}",
+                input_path,
+            ]
+
+            desc, ok = _subprocess_with_logging(cmd, f"Converted to PDF/A-{pdf_a_version} → {output}")
+            if not ok:
+                return desc
+
+            logger.info("PDF/A conversion → %s", output)
+        except FileNotFoundError:
+            return "Error: Ghostscript (gs) not found. Install with: brew install ghostscript"
+        except Exception as exc:
+            logger.error("pdf_to_a failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Converted to PDF/A-{pdf_a_version} → {output}"
 
     @staticmethod
     def pdf_to_markdown(
