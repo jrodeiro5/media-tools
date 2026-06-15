@@ -15,6 +15,7 @@ dependencies = [
     "liteparse>=2.0",
     "fastmcp>=3.4.2",
     "reportlab>=4.0",
+    "pytesseract>=0.3.10",
 ]
 
 [dependency-groups]
@@ -28,7 +29,8 @@ dev = [
 ]
 
 [project.scripts]
-media-tools = "media_tools.server:main"
+media-tools = "media_tools.cli:main"
+media-tools-server = "media_tools.server:main"
 
 [tool.ruff]
 line-length = 120
