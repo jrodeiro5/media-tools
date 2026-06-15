@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import io
 import os
 import subprocess
 from pathlib import Path
@@ -327,6 +328,541 @@ class PDFToolkit:
         except Exception as exc:
             logger.error("extract_screenshots failed: %s", exc)
             return f"Error: {exc}"
+
+    @staticmethod
+    def watermark(
+        input_path: str,
+        output: str,
+        text: str | None = None,
+        image_path: str | None = None,
+        opacity: float = 0.3,
+        angle: int = 45,
+        font_size: int = 48,
+        color: str = "#808080",
+    ) -> str:
+        """Add a watermark (text or image) to all pages of a PDF."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        if not text and not image_path:
+            return "Error: specify either text or image_path"
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            reader = pypdf.PdfReader(input_path)
+            writer = pypdf.PdfWriter()
+
+            from reportlab.lib.pagesizes import A4
+            from reportlab.lib.colors import HexColor
+            from reportlab.pdfgen import canvas
+
+            w, h = A4
+
+            for page in reader.pages:
+                packet = io.BytesIO()
+                c = canvas.Canvas(packet, pagesize=A4)
+                c.saveState()
+                c.translate(w / 2, h / 2)
+                c.rotate(angle)
+                c.setFillAlpha(opacity)
+
+                if text:
+                    c.setFont("Helvetica", font_size)
+                    c.setFillColor(HexColor(color))
+                    c.drawCentredString(0, 0, text)
+                elif image_path:
+                    img_err = validate_input(image_path)
+                    if img_err:
+                        return img_err
+                    c.drawImage(image_path, -100, -100, width=200, height=200, mask="auto")
+
+                c.restoreState()
+                c.save()
+                packet.seek(0)
+
+                overlay = pypdf.PdfReader(packet)
+                page.merge_page(overlay.pages[0])
+                writer.add_page(page)
+
+            writer.write(output)
+            writer.close()
+            logger.info("Watermarked PDF → %s", output)
+        except Exception as exc:
+            logger.error("watermark failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Watermark → {output}"
+
+    @staticmethod
+    def add_page_numbers(
+        input_path: str,
+        output: str,
+        position: str = "bottom-center",
+        format_str: str = "Page {page}",
+        font_size: int = 10,
+        font_color: str = "#000000",
+    ) -> str:
+        """Add page numbers to all pages of a PDF."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            reader = pypdf.PdfReader(input_path)
+            writer = pypdf.PdfWriter()
+
+            from reportlab.lib.pagesizes import A4
+            from reportlab.lib.colors import HexColor
+            from reportlab.pdfgen import canvas
+
+            w, h = A4
+            positions = {
+                "bottom-center": (w / 2, 50),
+                "bottom-right": (w - 100, 50),
+                "top-center": (w / 2, h - 50),
+                "top-right": (w - 100, h - 50),
+            }
+            x, y = positions.get(position, positions["bottom-center"])
+
+            for i, page in enumerate(reader.pages):
+                packet = io.BytesIO()
+                c = canvas.Canvas(packet, pagesize=A4)
+                c.setFont("Helvetica", font_size)
+                c.setFillColor(HexColor(font_color))
+                page_label = format_str.replace("{page}", str(i + 1))
+                if "center" in position:
+                    c.drawCentredString(x, y, page_label)
+                else:
+                    c.drawString(x, y, page_label)
+                c.save()
+                packet.seek(0)
+
+                overlay = pypdf.PdfReader(packet)
+                page.merge_page(overlay.pages[0])
+                writer.add_page(page)
+
+            writer.write(output)
+            writer.close()
+            logger.info("Page numbers → %s", output)
+        except Exception as exc:
+            logger.error("add_page_numbers failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Page numbers → {output}"
+
+    @staticmethod
+    def protect(
+        input_path: str,
+        output: str,
+        password: str,
+        owner_password: str | None = None,
+    ) -> str:
+        """Add password protection to a PDF."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            reader = pypdf.PdfReader(input_path)
+            writer = pypdf.PdfWriter()
+
+            for page in reader.pages:
+                writer.add_page(page)
+
+            writer.encrypt(password, owner_password or password)
+            writer.write(output)
+            writer.close()
+            logger.info("Protected PDF → %s", output)
+        except Exception as exc:
+            logger.error("protect failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"PDF protected with password → {output}"
+
+    @staticmethod
+    def unlock(input_path: str, output: str, password: str) -> str:
+        """Remove password protection from a PDF."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            reader = pypdf.PdfReader(input_path)
+            if not reader.is_encrypted:
+                return "Error: PDF is not encrypted"
+
+            reader.decrypt(password)
+            writer = pypdf.PdfWriter()
+
+            for page in reader.pages:
+                writer.add_page(page)
+
+            writer.write(output)
+            writer.close()
+            logger.info("Unlocked PDF → %s", output)
+        except Exception as exc:
+            logger.error("unlock failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"PDF unlocked → {output}"
+
+    @staticmethod
+    def images_to_pdf(
+        input_paths: list[str],
+        output: str,
+        fit: str = "fit",
+        quality: int = 85,
+    ) -> str:
+        """Convert one or more images to a single PDF.
+
+        Fit modes: fit (default), width, height, fill.
+        """
+        for f in input_paths:
+            err = validate_input(f)
+            if err:
+                return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            from PIL import Image
+            import io
+
+            writer = pypdf.PdfWriter()
+
+            for img_path in input_paths:
+                img = Image.open(img_path)
+                if img.mode == "RGBA":
+                    img = img.convert("RGB")
+
+                # Convert image to PDF page
+                img_stream = io.BytesIO()
+                img.save(img_stream, format="JPEG", quality=quality)
+                img_stream.seek(0)
+
+                img_pdf = pypdf.PdfReader(img_stream)
+                writer.add_page(img_pdf.pages[0])
+
+            writer.write(output)
+            writer.close()
+            logger.info("Images → PDF (%d pages) → %s", len(input_paths), output)
+        except Exception as exc:
+            logger.error("images_to_pdf failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Images → PDF ({len(input_paths)} pages) → {output}"
+
+    @staticmethod
+    def reorder_pages(
+        input_path: str,
+        output: str,
+        pages: list[int],
+    ) -> str:
+        """Reorder PDF pages. pages: list of 1-indexed page numbers in desired order.
+
+        Example: [3, 1, 2] puts page 3 first, then 1, then 2.
+        """
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            reader = pypdf.PdfReader(input_path)
+            total = len(reader.pages)
+            writer = pypdf.PdfWriter()
+
+            for p in pages:
+                idx = p - 1  # Convert to 0-indexed
+                if idx < 0 or idx >= total:
+                    return f"Error: page {p} out of range (1-{total})"
+                writer.add_page(reader.pages[idx])
+
+            writer.write(output)
+            writer.close()
+            logger.info("Reordered pages → %s", output)
+        except Exception as exc:
+            logger.error("reorder_pages failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Pages reordered → {output}"
+
+    @staticmethod
+    def delete_pages(
+        input_path: str,
+        output: str,
+        pages: list[int],
+    ) -> str:
+        """Delete specific pages from a PDF. pages: list of 1-indexed page numbers to remove.
+
+        Example: [2, 4, 5] removes pages 2, 4, and 5.
+        """
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            reader = pypdf.PdfReader(input_path)
+            total = len(reader.pages)
+            to_delete = set(p - 1 for p in pages)  # Convert to 0-indexed
+
+            for p in pages:
+                if p < 1 or p > total:
+                    return f"Error: page {p} out of range (1-{total})"
+
+            writer = pypdf.PdfWriter()
+            for i, page in enumerate(reader.pages):
+                if i not in to_delete:
+                    writer.add_page(page)
+
+            writer.write(output)
+            writer.close()
+            logger.info("Deleted pages %s → %s", pages, output)
+        except Exception as exc:
+            logger.error("delete_pages failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Pages deleted → {output}"
+
+    @staticmethod
+    def add_page_numbers(
+        input_path: str,
+        output: str,
+        position: str = "bottom-center",
+        format_str: str = "Page {page}",
+    ) -> str:
+        """Add page numbers to all pages of a PDF."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            reader = pypdf.PdfReader(input_path)
+            writer = pypdf.PdfWriter()
+
+            from reportlab.lib.pagesizes import A4
+            from reportlab.pdfgen import canvas
+            from reportlab.lib.units import mm
+
+            w, h = A4
+            positions = {
+                "bottom-center": (w / 2, 15 * mm),
+                "bottom-left": (20 * mm, 15 * mm),
+                "bottom-right": (w - 20 * mm, 15 * mm),
+                "top-center": (w / 2, h - 15 * mm),
+                "top-left": (20 * mm, h - 15 * mm),
+                "top-right": (w - 20 * mm, h - 15 * mm),
+            }
+            x, y = positions.get(position, positions["bottom-center"])
+
+            for i, page in enumerate(reader.pages):
+                packet = io.BytesIO()
+                c = canvas.Canvas(packet, pagesize=A4)
+                c.setFont("Helvetica", 10)
+                page_num = format_str.format(page=i + 1, total=len(reader.pages))
+                c.drawString(x, y, page_num)
+                c.save()
+                packet.seek(0)
+
+                overlay = pypdf.PdfReader(packet)
+                page.merge_page(overlay.pages[0])
+                writer.add_page(page)
+
+            writer.write(output)
+            writer.close()
+            logger.info("Page numbers → %s", output)
+        except Exception as exc:
+            logger.error("add_page_numbers failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Page numbers → {output}"
+
+    @staticmethod
+    def protect(input_path: str, output: str, password: str) -> str:
+        """Add password protection to a PDF."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            reader = pypdf.PdfReader(input_path)
+            writer = pypdf.PdfWriter()
+
+            for page in reader.pages:
+                writer.add_page(page)
+
+            writer.encrypt(password)
+            writer.write(output)
+            writer.close()
+            logger.info("Protected PDF → %s", output)
+        except Exception as exc:
+            logger.error("protect failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"PDF protected → {output}"
+
+    @staticmethod
+    def unlock(input_path: str, output: str, password: str) -> str:
+        """Remove password protection from a PDF."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            reader = pypdf.PdfReader(input_path)
+            if not reader.is_encrypted:
+                return "Error: PDF is not password-protected"
+
+            reader.decrypt(password)
+            writer = pypdf.PdfWriter()
+
+            for page in reader.pages:
+                writer.add_page(page)
+
+            writer.write(output)
+            writer.close()
+            logger.info("Unlocked PDF → %s", output)
+        except Exception as exc:
+            logger.error("unlock failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"PDF unlocked → {output}"
+
+    @staticmethod
+    def images_to_pdf(input_paths: list[str], output: str, quality: int = 85) -> str:
+        """Convert one or more images to a single PDF."""
+        for f in input_paths:
+            err = validate_input(f)
+            if err:
+                return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            from reportlab.lib.pagesizes import A4
+            from reportlab.pdfgen import canvas
+            from PIL import Image as PILImage
+
+            packets = []
+            for img_path in input_paths:
+                img = PILImage.open(img_path)
+                if img.mode in ("RGBA", "P"):
+                    img = img.convert("RGB")
+
+                # Create PDF page from image
+                packet = io.BytesIO()
+                c = canvas.Canvas(packet, pagesize=A4)
+                c.drawImage(img_path, 0, 0, width=A4[0], height=A4[1], mask="auto")
+                c.save()
+                packet.seek(0)
+                packets.append(pypdf.PdfReader(packet))
+
+            writer = pypdf.PdfWriter()
+            for pdf_reader in packets:
+                for page in pdf_reader.pages:
+                    writer.add_page(page)
+
+            writer.write(output)
+            writer.close()
+            logger.info("Images → PDF (%d pages) → %s", len(input_paths), output)
+        except Exception as exc:
+            logger.error("images_to_pdf failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Images → PDF → {output} ({len(input_paths)} pages)"
+
+    @staticmethod
+    def reorder_pages(input_path: str, output: str, pages: list[int]) -> str:
+        """Reorder PDF pages. pages: list of 1-indexed page numbers in desired order."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            reader = pypdf.PdfReader(input_path)
+            total = len(reader.pages)
+
+            # Validate page numbers
+            for p in pages:
+                if p < 1 or p > total:
+                    return f"Error: page {p} out of range (1-{total})"
+
+            writer = pypdf.PdfWriter()
+            for p in pages:
+                writer.add_page(reader.pages[p - 1])
+
+            writer.write(output)
+            writer.close()
+            logger.info("Reordered pages → %s", output)
+        except Exception as exc:
+            logger.error("reorder_pages failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Pages reordered → {output}"
+
+    @staticmethod
+    def delete_pages(input_path: str, output: str, pages: list[int]) -> str:
+        """Delete specific pages from a PDF. pages: list of 1-indexed page numbers to remove."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            reader = pypdf.PdfReader(input_path)
+            total = len(reader.pages)
+            to_delete = set(p - 1 for p in pages)  # Convert to 0-indexed
+
+            # Validate page numbers
+            for p in pages:
+                if p < 1 or p > total:
+                    return f"Error: page {p} out of range (1-{total})"
+
+            writer = pypdf.PdfWriter()
+            for i in range(total):
+                if i not in to_delete:
+                    writer.add_page(reader.pages[i])
+
+            writer.write(output)
+            writer.close()
+            logger.info("Deleted %d pages → %s", len(pages), output)
+        except Exception as exc:
+            logger.error("delete_pages failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Pages deleted → {output}"
 
     @staticmethod
     def pdf_to_markdown(

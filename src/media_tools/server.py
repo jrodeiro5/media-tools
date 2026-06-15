@@ -92,6 +92,58 @@ def pdf_extract_screenshots(
     return PDFToolkit.extract_screenshots(input_path, output_dir, dpi, page_numbers)
 
 
+@mcp.tool(name="pdf_watermark")
+def pdf_watermark(
+    input_path: str, output: str,
+    text: str | None = None, image_path: str | None = None,
+    opacity: float = 0.3, angle: int = 45,
+) -> str:
+    """Add a text or image watermark to all pages of a PDF."""
+    return PDFToolkit.watermark(input_path, output, text, image_path, opacity, angle)
+
+
+@mcp.tool(name="pdf_page_numbers")
+def pdf_page_numbers(
+    input_path: str, output: str,
+    position: str = "bottom-center",
+    format_str: str = "Page {page}",
+) -> str:
+    """Add page numbers to all pages of a PDF."""
+    return PDFToolkit.add_page_numbers(input_path, output, position, format_str)
+
+
+@mcp.tool(name="pdf_protect")
+def pdf_protect(
+    input_path: str, output: str, password: str,
+) -> str:
+    """Add password protection to a PDF."""
+    return PDFToolkit.protect(input_path, output, password)
+
+
+@mcp.tool(name="pdf_unlock")
+def pdf_unlock(input_path: str, output: str, password: str) -> str:
+    """Remove password protection from a PDF."""
+    return PDFToolkit.unlock(input_path, output, password)
+
+
+@mcp.tool(name="images_to_pdf")
+def images_to_pdf(input_paths: list[str], output: str, quality: int = 85) -> str:
+    """Convert one or more images to a single PDF."""
+    return PDFToolkit.images_to_pdf(input_paths, output, quality=quality)
+
+
+@mcp.tool(name="pdf_reorder_pages")
+def pdf_reorder_pages(input_path: str, output: str, pages: list[int]) -> str:
+    """Reorder PDF pages. pages: list of 1-indexed page numbers in desired order."""
+    return PDFToolkit.reorder_pages(input_path, output, pages)
+
+
+@mcp.tool(name="pdf_delete_pages")
+def pdf_delete_pages(input_path: str, output: str, pages: list[int]) -> str:
+    """Delete specific pages from a PDF. pages: list of 1-indexed page numbers to remove."""
+    return PDFToolkit.delete_pages(input_path, output, pages)
+
+
 @mcp.tool(name="pdf_to_markdown")
 def pdf_to_markdown(
     input_path: str, output: str | None = None,

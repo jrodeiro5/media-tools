@@ -14,6 +14,7 @@ dependencies = [
     "pydub>=0.25",
     "liteparse>=2.0",
     "fastmcp>=3.4.2",
+    "reportlab>=4.0",
 ]
 
 [dependency-groups]
