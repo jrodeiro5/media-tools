@@ -1,0 +1,34 @@
+rules:
+  - id: no-shell-subprocess
+    message: "Avoid shell=True in subprocess calls — use list args"
+    languages: [python]
+    severity: ERROR
+    pattern: subprocess.run(..., shell=True)
+
+  - id: no-print-debug
+    message: "Remove print() statements before committing"
+    languages: [python]
+    severity: WARNING
+    pattern: print(...)
+
+  - id: missing-input-validation
+    message: "Tools accepting file paths should validate input"
+    languages: [python]
+    severity: WARNING
+    pattern-either:
+      - pattern: |
+          def $FUNC($PATH: str, ...):
+            ...
+      - metavariable-regex:
+          metavariable: $PATH
+          regex: (input_path|file_path|path): str
+
+  - id: missing-error-handling
+    message: "Consider try/except for file I/O operations"
+    languages: [python]
+    severity: INFO
+    pattern-either:
+      - pattern: |
+          $LIB.open($PATH)
+      - pattern: |
+          Path($PATH).$METHOD(...)

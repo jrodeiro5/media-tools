@@ -1,0 +1,56 @@
+[project]
+name = "media-tools"
+version = "0.1.0"
+description = "MCP server with multimedia processing tools (PDF, video, image, audio, office docs)"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp>=1.0.0",
+    "pypdf>=5.0.0",
+    "pypdfium2>=4.0",
+    "pdfplumber>=0.11",
+    "Pillow>=11.0",
+    "pillow-heif>=0.20",
+    "markitdown>=0.1",
+    "pydub>=0.25",
+    "liteparse>=2.0",
+    "fastmcp>=3.4.2",
+]
+
+[dependency-groups]
+dev = [
+    "bandit>=1.9.4",
+    "ruff>=0.11",
+    "vulture>=2.11",
+    "semgrep>=1.80",
+    "radon>=6.0",
+    "mypy>=1.14",
+]
+
+[project.scripts]
+media-tools = "media_tools.server:main"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["B008"]  # function call in arg defaults is fine for FastMCP
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.bandit]
+skip = ["B104", "B602", "B603"]
+exclude_dirs = [".venv"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+
+[tool.vulture]
+min_confidence = 80
+paths = ["src"]
+exclude = [".venv"]
