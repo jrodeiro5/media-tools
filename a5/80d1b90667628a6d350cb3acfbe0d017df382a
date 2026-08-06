@@ -1,0 +1,29 @@
+src/media_tools/server.py
+  s_aee0f7aef0f2ca::t_d83ac5ba3547cd 387-417
+pyproject.toml
+  s_aee0f7aef0f2ca::t_b8c485c639ff0d 23
+src/media_tools/tools/tts.py
+  s_aee0f7aef0f2ca::t_9c7653eae9eaa7 1-88
+src/media_tools/tools/__init__.py
+  s_aee0f7aef0f2ca::t_fe3ee8e19c50c5 6,9-17
+README.md
+  s_aee0f7aef0f2ca::t_7f061317f0bf4a 35,43-44,52-53
+uv.lock
+  s_aee0f7aef0f2ca::t_7d22bc289450e2 643-658,789-803,1298,1329,1713-1760,3426-3437
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "a580d1b90667628a6d350cb3acfbe0d017df382a",
+  "prompts": {},
+  "sessions": {
+    "s_aee0f7aef0f2ca": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019fd7d3-783b-7016-b366-d607c0fc0ffa",
+        "model": "local-ornith-35b"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
