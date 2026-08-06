@@ -1,0 +1,71 @@
+src/media_tools/server.py
+  s_aee0f7aef0f2ca::t_f4c54137402d86 311-386
+  s_aee0f7aef0f2ca::t_14cd2492fc5c7b 1,24,26
+merge_nominas.py
+  s_41e343b20a5299::t_ab22e54524a34b 1-44,46-229
+  s_41e343b20a5299::t_134031d018c354 45
+.claude/CLAUDE.md
+  s_def95f309ab127::t_6a244752ff5f8e 3
+  s_def95f309ab127::t_937611fbd89b40 1-2
+  s_def95f309ab127::t_42fbdd3f766698 4
+src/media_tools/tools/pdf.py
+  s_aee0f7aef0f2ca::t_b2805435d3e6b7 1117-1187
+pyproject.toml
+  s_aee0f7aef0f2ca::t_33ee55661440ec 19
+  s_aee0f7aef0f2ca::t_f3e7170ef4e9f0 14
+  s_aee0f7aef0f2ca::t_69a14a80fbd235 20-22
+src/media_tools/tools/ai.py
+  s_aee0f7aef0f2ca::t_e1eb48672626ab 1-134
+src/media_tools/tools/office.py
+  s_aee0f7aef0f2ca::t_760eb14a7e2abe 7-8,17-20,26,38-43
+src/media_tools/tools/video.py
+  s_aee0f7aef0f2ca::t_00ab2b1487d91a 199-291
+src/media_tools/tools/__init__.py
+  s_aee0f7aef0f2ca::t_5496bbe484a45f 1,8
+README.md
+  s_aee0f7aef0f2ca::t_95db558d31c380 3,35,37-38,40-41,43-44,46-47,49-53,59
+.openwikiignore
+  s_8d6253050d49e7::t_8a0329e32c5770 1-21
+uv.lock
+  s_aee0f7aef0f2ca::t_fd2a85851122ba 471-479,617-618,620-623,625-689,795-808,1034-1069,1101-1199,1266,1269-1271,1296-1297,1299-1301,1333-1334,1336-1345,1347,1531-1532,1535,1537,1539,1543-1544,1547,1549,1551-1558,1707-1723,1762-1841,1918-1929,2162-2178,2239-2251,2385,2390,2399,2401,2985-2986,2988,2990
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "2cf2129112421c957fbef76f9312e097efda8dcc",
+  "prompts": {},
+  "sessions": {
+    "s_41e343b20a5299": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019fd349-6c80-74a1-b51f-c90b7840cbba",
+        "model": "local-ornith-35b"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_8d6253050d49e7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0ba2240b-5ec5-4443-ac5d-a8d8833d53f6",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_aee0f7aef0f2ca": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019fd7d3-783b-7016-b366-d607c0fc0ffa",
+        "model": "local-ornith-35b"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_def95f309ab127": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f9e24ef1-5371-4b90-9f1c-2da252e5d4cc",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
