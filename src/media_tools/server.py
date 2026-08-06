@@ -384,6 +384,37 @@ def document_translate(input_path: str, output: str, target_language: str = "en"
     return AIToolkit.translate(input_path, output, target_language)
 
 
+# === Text-to-Speech ===
+
+@mcp.tool(name="text_to_speech")
+def text_to_speech(
+    text: str,
+    output: str,
+    voice_id: str | None = None,
+    speed: float = 1.0,
+    audio_format: str = "mp3",
+    latency: str = "balanced",
+    reference_audio: str | None = None,
+    reference_text: str | None = None,
+) -> str:
+    """Convert text to speech using Fish Audio.
+    
+    Supports voice cloning with reference audio.
+    Requires: FISH_API_KEY environment variable.
+    """
+    from media_tools.tools.tts import TTSToolkit
+    return TTSToolkit.convert(
+        text=text,
+        output=output,
+        voice_id=voice_id,
+        speed=speed,
+        audio_format=audio_format,
+        latency=latency,
+        reference_audio=reference_audio,
+        reference_text=reference_text,
+    )
+
+
 def main():
     port = int(os.environ.get("PORT", "8020"))
     mcp.run(transport="streamable-http", port=port)
