@@ -29,3 +29,10 @@ repos:
         pass_filenames: false
         always_run: true
         additional_dependencies: [semgrep]
+
+  - repo: local
+    hooks:
+      - id: gitleaks
+        name: gitleaks (scan staged changes for secrets)
+        entry: gitleaks protect --staged --verbose
+        language: system

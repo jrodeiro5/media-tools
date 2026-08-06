@@ -260,6 +260,12 @@ def image_info(input_path: str) -> str:
     return ImageToolkit.info(input_path)
 
 
+@mcp.tool(name="image_remove_background")
+def image_remove_background(input_path: str, output: str, alpha_matting: bool = False) -> str:
+    """Remove background from an image using AI (U2-Net model)."""
+    return ImageToolkit.remove_background(input_path, output, alpha_matting)
+
+
 @mcp.tool(name="audio_convert")
 def audio_convert(input_path: str, output: str, bitrate: str = "192k") -> str:
     """Convert audio between formats (extension determines format)."""

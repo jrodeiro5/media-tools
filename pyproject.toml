@@ -16,6 +16,7 @@ dependencies = [
     "fastmcp>=3.4.2",
     "reportlab>=4.0",
     "pytesseract>=0.3.10",
+    "rembg>=2.0.0",
 ]
 
 [dependency-groups]

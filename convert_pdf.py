@@ -82,7 +82,7 @@ def run_deepseek_ocr(input_path: str, output_path: str, api_key: str):
         import pypdfium2 as pdfium
         from openai import OpenAI
 
-        client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
+        client = OpenAI(api_key=api_key, base_url="https://token-plan-ams.xiaomimimo.com/v1")
 
         pdf = pdfium.PdfDocument(input_path)
         total_pages = len(pdf)
@@ -123,7 +123,7 @@ def run_deepseek_ocr(input_path: str, output_path: str, api_key: str):
             image_parts.append({"type": "text", "text": prompt})
 
             response = client.chat.completions.create(
-                model="deepseek-chat",
+                model="mimo-v2.5",
                 messages=[{"role": "user", "content": image_parts}],
             )
             final_markdown.append(response.choices[0].message.content)
@@ -146,7 +146,7 @@ def run_deepseek_ocr(input_path: str, output_path: str, api_key: str):
 def main():
     pdf_path = "/Users/jrodeiro/Downloads/gep.pdf"
     output_path = "/Users/jrodeiro/Downloads/gep.md"
-    api_key = os.environ.get("DEEPSEEK_API_KEY", "")
+    api_key = os.environ.get("XIAOMI_SUB_API_KEY", "")
     if api_key:
         run_deepseek_ocr(pdf_path, output_path, api_key)
     else:

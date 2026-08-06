@@ -417,3 +417,37 @@ class ImageToolkit:
         except Exception as exc:
             logger.error("info failed: %s", exc)
             return f"Error: {exc}"
+
+    @staticmethod
+    def remove_background(input_path: str, output: str, alpha_matting: bool = False) -> str:
+        """Remove background from an image using U2-Net AI model.
+
+        Uses rembg library with U2-Net model for salient object detection.
+        First run downloads model (~100MB), subsequent runs use cached model.
+        """
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            from rembg import remove
+
+            img = Image.open(input_path)
+            result = remove(img, alpha_matting=alpha_matting)
+
+            ext = Path(output).suffix.lower().lstrip(".")
+            if ext in ("jpg", "jpeg") and result.mode == "RGBA":
+                result = result.convert("RGB")
+
+            result.save(output)
+            logger.info("Removed background → %s", output)
+        except ImportError:
+            return "Error: rembg not installed. Run: pip install rembg"
+        except Exception as exc:
+            logger.error("remove_background failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Background removed → {output}"

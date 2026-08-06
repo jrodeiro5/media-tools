@@ -1,5 +1,52 @@
+# Python
 __pycache__/
 *.pyc
+*.pyo
 *.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+
+# Lock files
+# uv.lock is committed (unignored below)
+
+# Tool caches and scratch
+.ruff_cache/
+.ruff_db/
+.pytest_cache/
+.ruff_settings.json
+
+# GitNexus
+.gitnexus/
+
+# Code graph
+.codegraph/
+
+# Firecrawl cache
+.firecrawl/
+
+# SonarQube
+.sonar/
+.scannerwork/
+
+# Orca session data
 .omo/
-uv.lock
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
