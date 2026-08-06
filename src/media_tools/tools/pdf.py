@@ -1114,3 +1114,74 @@ class PDFToolkit:
         except Exception as exc:
             logger.error("pdf_to_markdown failed: %s", exc)
             return f"Error: {exc}"
+
+    @staticmethod
+    def to_docx(input_path: str, output: str) -> str:
+        """Convert PDF to DOCX using pdf2docx."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            from pdf2docx import Converter
+            cv = Converter(input_path)
+            cv.convert(output)
+            cv.close()
+            logger.info("Converted PDF → DOCX: %s", output)
+            return f"Converted to DOCX → {output}"
+        except Exception as exc:
+            logger.error("to_docx failed: %s", exc)
+            return f"Error: {exc}"
+
+    @staticmethod
+    def redact(
+        input_path: str, output: str,
+        text_patterns: list[str] | None = None,
+        rect_areas: list[dict] | None = None,
+    ) -> str:
+        """Redact (black out) sensitive information from PDF.
+        
+        text_patterns: list of text strings to redact
+        rect_areas: list of {x, y, width, height} to redact
+        """
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            import pypdf
+            from reportlab.pdfgen import canvas as pdf_canvas
+            from reportlab.lib.pagesizes import letter
+            from reportlab.lib.units import inch
+
+            reader = pypdf.PdfReader(input_path)
+            writer = pypdf.PdfWriter()
+
+            for page in reader.pages:
+                page_copy = page.clone()
+                # Add redaction rectangles
+                for rect in (rect_areas or []):
+                    x, y, w, h = rect.get('x', 0), rect.get('y', 0), rect.get('width', 100), rect.get('height', 50)
+                    # Convert to PDF coordinates (bottom-left origin)
+                    pdf_y = letter[1] - y - h
+                    page_copy.merge_page(
+                        pdf_canvas.Canvas(io.BytesIO(), pagesize=letter)
+                        .setFillColor('black')
+                        .rect(x * inch, pdf_y, w * inch, h * inch, fill=True)
+                        .getpdfdata()
+                    )
+                writer.add_page(page_copy)
+
+            with open(output, 'wb') as f:
+                writer.write(f)
+            logger.info("Redacted PDF → %s", output)
+            return f"Redacted PDF → {output}"
+        except Exception as exc:
+            logger.error("redact failed: %s", exc)
+            return f"Error: {exc}"

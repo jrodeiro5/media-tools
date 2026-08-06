@@ -10,13 +10,16 @@ dependencies = [
     "pdfplumber>=0.11",
     "Pillow>=11.0",
     "pillow-heif>=0.20",
-    "markitdown>=0.1",
     "pydub>=0.25",
-    "liteparse>=2.0",
+    "firecrawl-anydoc>=0.1.0",
     "fastmcp>=3.4.2",
     "reportlab>=4.0",
     "pytesseract>=0.3.10",
     "rembg>=2.0.0",
+    "liteparse>=2.11.1",
+    "pdf2docx>=0.5.13",
+    "moviepy>=2.2.1",
+    "opencv-python-headless>=5.0.0.93",
 ]
 
 [dependency-groups]

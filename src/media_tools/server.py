@@ -1,4 +1,4 @@
-"""MCP server exposing 25 multimedia processing tools."""
+"""MCP server exposing 50+ multimedia processing tools."""
 
 from __future__ import annotations
 
@@ -21,9 +21,9 @@ mcp = FastMCP(
     "Media Tools",
     instructions=(
         "Multimedia processing MCP server: "
-        "PDF merge/split/compress, video conversion, "
+        "PDF merge/split/compress/convert, video conversion, "
         "image manipulation, audio processing, "
-        "Office-to-Markdown."
+        "Office-to-Markdown, AI-powered document analysis."
     ),
 )
 
@@ -306,6 +306,82 @@ def office_to_markdown(input_path: str, output: str | None = None) -> str:
 def office_to_pdf(input_path: str, output: str) -> str:
     """Convert Office documents to PDF using LibreOffice."""
     return OfficeToolkit.to_pdf(input_path, output)
+
+
+# === PDF to DOCX ===
+
+@mcp.tool(name="pdf_to_docx")
+def pdf_to_docx(input_path: str, output: str) -> str:
+    """Convert PDF to DOCX using pdf2docx."""
+    from media_tools.tools.pdf import PDFToolkit
+    return PDFToolkit.to_docx(input_path, output)
+
+
+# === Video/Image/Audio Extensions ===
+
+@mcp.tool(name="image_to_video")
+def image_to_video(
+    input_paths: list[str], output: str, fps: int = 30, duration_per_image: int = 5,
+) -> str:
+    """Create a video slideshow from images using MoviePy."""
+    from media_tools.tools.video import VideoToolkit
+    return VideoToolkit.slideshow(input_paths, output, fps, duration_per_image)
+
+
+@mcp.tool(name="video_extract_frames")
+def video_extract_frames(
+    input_path: str, output_dir: str, fps: int = 1, start: str = "00:00:00", duration: str | None = None,
+) -> str:
+    """Extract frames from video as images using OpenCV."""
+    from media_tools.tools.video import VideoToolkit
+    return VideoToolkit.extract_frames(input_path, output_dir, fps, start, duration)
+
+
+@mcp.tool(name="audio_to_video")
+def audio_to_video(input_path: str, video_path: str, output: str) -> str:
+    """Create a video with audio track using MoviePy."""
+    from media_tools.tools.video import VideoToolkit
+    return VideoToolkit.audio_to_video(input_path, video_path, output)
+
+
+# === PDF Redaction ===
+
+@mcp.tool(name="pdf_redact")
+def pdf_redact(
+    input_path: str, output: str,
+    text_patterns: list[str] | None = None,
+    rect_areas: list[dict] | None = None,
+) -> str:
+    """Redact (black out) sensitive information from PDF.
+    
+    text_patterns: list of text strings to redact
+    rect_areas: list of {x, y, width, height} to redact
+    """
+    from media_tools.tools.pdf import PDFToolkit
+    return PDFToolkit.redact(input_path, output, text_patterns, rect_areas)
+
+
+# === AI-Powered Document Tools ===
+
+@mcp.tool(name="document_summarize")
+def document_summarize(input_path: str, output: str | None = None) -> str:
+    """Summarize a document using LLM (Gemma 4 e2e via LiteLLM)."""
+    from media_tools.tools.ai import AIToolkit
+    return AIToolkit.summarize(input_path, output)
+
+
+@mcp.tool(name="document_qa")
+def document_qa(input_path: str, question: str, output: str | None = None) -> str:
+    """Answer questions about a document using LLM (Gemma 4 e2e via LiteLLM)."""
+    from media_tools.tools.ai import AIToolkit
+    return AIToolkit.qa(input_path, question, output)
+
+
+@mcp.tool(name="document_translate")
+def document_translate(input_path: str, output: str, target_language: str = "en") -> str:
+    """Translate document content using LLM (Gemma 4 e2e via LiteLLM)."""
+    from media_tools.tools.ai import AIToolkit
+    return AIToolkit.translate(input_path, output, target_language)
 
 
 def main():

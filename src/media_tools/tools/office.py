@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import anydoc
+
 from media_tools.utils import _subprocess_with_logging, logger, validate_input, validate_output_dir
 
 
@@ -12,17 +14,16 @@ class OfficeToolkit:
 
     @staticmethod
     def to_markdown(input_path: str, output: str | None = None) -> str:
-        """Convert Office files (.docx, .pptx, .xlsx) to Markdown."""
+        """Convert Office files (.docx, .pptx, .xlsx, .odt, .odp, .rtf, .epub, .csv, .pdf) to Markdown.
+
+        Uses firecrawl-anydoc (Rust-based, ~5ms/doc). Supports 14 formats.
+        """
         err = validate_input(input_path)
         if err:
             return err
 
         try:
-            from markitdown import MarkItDown
-
-            md = MarkItDown()
-            result = md.convert(input_path)
-            text = result.text_content
+            text = anydoc.to_markdown(input_path)
 
             if output:
                 err = validate_output_dir(output)
@@ -34,6 +35,12 @@ class OfficeToolkit:
 
             logger.info("Converted %s to markdown", input_path)
             return text
+        except (anydoc.EncryptedError, anydoc.UnsupportedError) as exc:
+            logger.error("to_markdown failed: %s", exc)
+            return f"Error: {exc}"
+        except anydoc.ConvertError as exc:
+            logger.error("to_markdown failed: %s", exc)
+            return f"Error: {exc}"
         except Exception as exc:
             logger.error("to_markdown failed: %s", exc)
             return f"Error: {exc}"

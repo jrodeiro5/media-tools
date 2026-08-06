@@ -196,6 +196,99 @@ def _rframe(rate: str) -> str:
         return rate
 
 
+    @staticmethod
+    def slideshow(
+        input_paths: list[str], output: str, fps: int = 30, duration_per_image: int = 5,
+    ) -> str:
+        """Create a video slideshow from images using MoviePy."""
+        for p in input_paths:
+            err = validate_input(p)
+            if err:
+                return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            from moviepy import ImageClip, concatenate_videoclips
+            clips = [ImageClip(p, duration=duration_per_image) for p in input_paths]
+            video = concatenate_videoclips(clips, method="compose")
+            video.write_videofile(output, fps=fps)
+            video.close()
+            logger.info("Slideshow → %s", output)
+            return f"Slideshow → {output} ({len(input_paths)} images, {duration_per_image}s each)"
+        except Exception as exc:
+            logger.error("slideshow failed: %s", exc)
+            return f"Error: {exc}"
+
+    @staticmethod
+    def extract_frames(
+        input_path: str, output_dir: str, fps: int = 1, start: str = "00:00:00", duration: str | None = None,
+    ) -> str:
+        """Extract frames from video as images using OpenCV."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output_dir)
+        if err:
+            return err
+
+        try:
+            import cv2
+            cap = cv2.VideoCapture(input_path)
+            if not cap.isOpened():
+                return "Error: Could not open video file"
+
+            out_dir = Path(output_dir)
+            out_dir.mkdir(parents=True, exist_ok=True)
+            frame_count = 0
+            fps_actual = cap.get(cv2.CAP_PROP_FPS)
+            skip_frames = int(fps_actual / fps)
+
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                if frame_count % skip_frames == 0:
+                    out_path = out_dir / f"frame_{frame_count:06d}.png"
+                    cv2.imwrite(str(out_path), frame)
+                frame_count += 1
+
+            cap.release()
+            logger.info("Extracted frames → %s", output_dir)
+            return f"Extracted {frame_count // skip_frames} frames → {output_dir}"
+        except Exception as exc:
+            logger.error("extract_frames failed: %s", exc)
+            return f"Error: {exc}"
+
+    @staticmethod
+    def audio_to_video(input_path: str, video_path: str, output: str) -> str:
+        """Create a video with audio track using MoviePy."""
+        err_audio = validate_input(input_path)
+        if err_audio:
+            return err_audio
+        err_video = validate_input(video_path)
+        if err_video:
+            return err_video
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            from moviepy import AudioFileClip, VideoFileClip
+            audio = AudioFileClip(input_path)
+            video = VideoFileClip(video_path)
+            video = video.set_audio(audio)
+            video.write_videofile(output)
+            video.close()
+            audio.close()
+            logger.info("Audio + Video → %s", output)
+            return f"Audio + Video → {output}"
+        except Exception as exc:
+            logger.error("audio_to_video failed: %s", exc)
+            return f"Error: {exc}"
+
+
 def _human_size(size: int) -> str:
     """Format bytes to human-readable string."""
     for unit in ("B", "KB", "MB", "GB", "TB"):
