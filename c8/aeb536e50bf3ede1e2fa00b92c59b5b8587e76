@@ -1,0 +1,43 @@
+.pre-commit-config.yaml
+  s_3efb01cfb0793e::t_44753d8362b193 27
+  s_3efb01cfb0793e::t_58081c013bb29d 16
+almanac/incidents/keyv-npm-worm-audit.md
+  s_c4e59bcc0efb38::t_e908cd8f37a138 130-131,134,136,138-142,144,148-154
+  s_c4e59bcc0efb38::t_48c87fed3d4238 1-129,132-133,135,137,143,145-147
+AGENTS.md
+  s_4c6c6bfa06514b::t_93aa2200aeb18d 4
+CLAUDE.md
+  s_4c6c6bfa06514b::t_8f0318a11f13fe 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "c8aeb536e50bf3ede1e2fa00b92c59b5b8587e76",
+  "prompts": {},
+  "sessions": {
+    "s_3efb01cfb0793e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_01fa6a6e2ffe8HpwkUDmz7M4sJ",
+        "model": "unknown"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_4c6c6bfa06514b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ce35ce02-d7ea-4739-ad1c-140183959e22",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_c4e59bcc0efb38": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fd9a6-d184-7bf3-b97e-53d0771d5b8b",
+        "model": "gpt-5.4-mini"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
