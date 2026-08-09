@@ -19,9 +19,9 @@ Currently: `pytesseract` is a dependency but unused — no OCR-output tool exist
 
 ## PDF
 
-- [ ] `pdf_ocr` — OCR scanned/image PDF → searchable PDF or text (Tesseract, see above)
+- [x] `pdf_ocr` — implemented 2026-08-09 (`PDFToolkit.ocr`, pdfium render → pytesseract per page, returns text or writes to file)
 - [ ] `pdf_to_pptx`, `pdf_to_xlsx`
-- [ ] `pdf_crop` — crop page margins
+- [x] `pdf_crop` — implemented 2026-08-09 (`PDFToolkit.crop`, pypdf mediabox trim per edge)
 - [ ] `pdf_repair` — fix corrupt/malformed PDFs
 - [ ] `html_to_pdf`
 - [ ] fix dead code: `pdf.py` has 6 duplicate method defs (`add_page_numbers`, `protect`, `unlock`, `images_to_pdf`, `reorder_pages`, `delete_pages`) — flagged, not yet cleaned, needs go-ahead

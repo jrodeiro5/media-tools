@@ -174,6 +174,39 @@ class PDFToolkit:
             return f"Error: {exc}"
 
     @staticmethod
+    def ocr(input_path: str, output: str | None = None, dpi: int = 200) -> str:
+        """OCR a scanned/image PDF page-by-page and return the extracted text."""
+        err = validate_input(input_path)
+        if err:
+            return err
+
+        try:
+            import pytesseract
+        except ImportError:
+            return "Error: pytesseract not installed (pip install pytesseract, plus the tesseract binary)"
+
+        try:
+            pdf = pdfium.PdfDocument(input_path)
+            pages_text = []
+            for page in pdf:
+                bitmap = page.render(scale=dpi / 72)
+                img = bitmap.to_pil()
+                pages_text.append(pytesseract.image_to_string(img).strip())
+            pdf.close()
+
+            text = "\n\n".join(pages_text)
+            if output:
+                Path(output).write_text(text, encoding="utf-8")
+                logger.info("OCR'd %d pages → %s", len(pages_text), output)
+                return f"OCR'd {len(pages_text)} pages → {output}"
+
+            logger.info("OCR'd %d pages", len(pages_text))
+            return text
+        except Exception as exc:
+            logger.error("ocr failed: %s", exc)
+            return f"Error: {exc}"
+
+    @staticmethod
     def rotate(input_path: str, output: str, angle: int = 90) -> str:
         """Rotate all pages in a PDF by a given angle."""
         err = validate_input(input_path)
@@ -199,6 +232,35 @@ class PDFToolkit:
             return f"Error: {exc}"
 
         return f"Rotated {angle}° → {output}"
+
+    @staticmethod
+    def crop(input_path: str, output: str, left: float = 0, bottom: float = 0, right: float = 0, top: float = 0) -> str:
+        """Crop page margins (points to trim from each edge)."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            reader = pypdf.PdfReader(input_path)
+            writer = pypdf.PdfWriter()
+
+            for page in reader.pages:
+                new_page = writer.add_page(page)
+                box = new_page.mediabox
+                new_page.mediabox.lower_left = (box.left + left, box.bottom + bottom)
+                new_page.mediabox.upper_right = (box.right - right, box.top - top)
+
+            writer.write(output)
+            writer.close()
+            logger.info("Cropped PDF → %s", output)
+        except Exception as exc:
+            logger.error("crop failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Cropped → {output}"
 
     @staticmethod
     def info(input_path: str) -> str:
