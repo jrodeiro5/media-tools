@@ -1,0 +1,28 @@
+BACKLOG.md
+  s_3cc916197b61b2::t_a9f447fd68c4ea 1-57
+  s_b7c0ba41cddba3::t_8024e14f6813c9 58-68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "4dc026ab923e94d643de3a2eb5ed92acfacdb9f7",
+  "prompts": {},
+  "sessions": {
+    "s_3cc916197b61b2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3d3668fd-4f14-46ae-91b2-6dc0e3e9218f",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_b7c0ba41cddba3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e25eeda0-6ca5-42e5-a6b8-4bf08e273db8",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
