@@ -185,6 +185,185 @@ class VideoToolkit:
         return desc
 
     @staticmethod
+    def crop(input_path: str, output: str, width: int, height: int, x: int = 0, y: int = 0) -> str:
+        """Crop a video to a rectangle (width x height, offset x,y)."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        codec_args = _codec_for(output)
+        cmd = ["ffmpeg", "-y", "-i", input_path, "-vf", f"crop={width}:{height}:{x}:{y}", *codec_args, output]
+        desc, ok = _subprocess_with_logging(cmd, f"Cropped → {output}")
+        return desc
+
+    @staticmethod
+    def rotate(input_path: str, output: str, angle: int = 90) -> str:
+        """Rotate a video by 90, 180, or 270 degrees clockwise."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        transpose = {90: "transpose=1", 180: "transpose=1,transpose=1", 270: "transpose=2"}
+        vf = transpose.get(angle % 360)
+        if not vf:
+            return "Error: angle must be 90, 180, or 270"
+
+        codec_args = _codec_for(output)
+        cmd = ["ffmpeg", "-y", "-i", input_path, "-vf", vf, *codec_args, output]
+        desc, ok = _subprocess_with_logging(cmd, f"Rotated {angle}° → {output}")
+        return desc
+
+    @staticmethod
+    def resize(input_path: str, output: str, width: int, height: int = -2) -> str:
+        """Resize a video. Height -2 preserves aspect ratio (even dimensions)."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        codec_args = _codec_for(output)
+        cmd = ["ffmpeg", "-y", "-i", input_path, "-vf", f"scale={width}:{height}", *codec_args, output]
+        desc, ok = _subprocess_with_logging(cmd, f"Resized → {output}")
+        return desc
+
+    @staticmethod
+    def reverse(input_path: str, output: str) -> str:
+        """Reverse a video (and its audio) — loads the full clip into memory."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        codec_args = _codec_for(output)
+        cmd = ["ffmpeg", "-y", "-i", input_path, "-vf", "reverse", "-af", "areverse", *codec_args, output]
+        desc, ok = _subprocess_with_logging(cmd, f"Reversed → {output}")
+        return desc
+
+    @staticmethod
+    def speed(input_path: str, output: str, factor: float = 2.0) -> str:
+        """Change playback speed. factor > 1 speeds up, < 1 slows down."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+        if factor <= 0:
+            return "Error: factor must be positive"
+
+        codec_args = _codec_for(output)
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-i",
+            input_path,
+            "-vf",
+            f"setpts={1 / factor}*PTS",
+            "-af",
+            f"atempo={factor}",
+            *codec_args,
+            output,
+        ]
+        desc, ok = _subprocess_with_logging(cmd, f"Speed x{factor} → {output}")
+        return desc
+
+    @staticmethod
+    def merge(input_paths: list[str], output: str) -> str:
+        """Concatenate multiple videos (same codec/resolution recommended)."""
+        for p in input_paths:
+            err = validate_input(p)
+            if err:
+                return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        list_path = str(Path(output).with_suffix(".txt"))
+        with open(list_path, "w") as f:
+            for p in input_paths:
+                f.write(f"file '{Path(p).resolve()}'\n")
+
+        cmd = ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", list_path, "-c", "copy", output]
+        desc, ok = _subprocess_with_logging(cmd, f"Merged {len(input_paths)} clips → {output}")
+        Path(list_path).unlink(missing_ok=True)
+        return desc
+
+    @staticmethod
+    def watermark(
+        input_path: str,
+        watermark_path: str,
+        output: str,
+        position: str = "bottom-right",
+        margin: int = 10,
+    ) -> str:
+        """Overlay an image watermark onto a video."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_input(watermark_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        positions = {
+            "top-left": f"{margin}:{margin}",
+            "top-right": f"main_w-overlay_w-{margin}:{margin}",
+            "bottom-left": f"{margin}:main_h-overlay_h-{margin}",
+            "bottom-right": f"main_w-overlay_w-{margin}:main_h-overlay_h-{margin}",
+            "center": "(main_w-overlay_w)/2:(main_h-overlay_h)/2",
+        }
+        overlay_pos = positions.get(position)
+        if not overlay_pos:
+            return f"Error: position must be one of {list(positions)}"
+
+        codec_args = _codec_for(output)
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-i",
+            input_path,
+            "-i",
+            watermark_path,
+            "-filter_complex",
+            f"overlay={overlay_pos}",
+            *codec_args,
+            output,
+        ]
+        desc, ok = _subprocess_with_logging(cmd, f"Watermarked → {output}")
+        return desc
+
+    @staticmethod
+    def subtitle_burn(input_path: str, subtitle_path: str, output: str) -> str:
+        """Burn an .srt/.ass subtitle file into the video (hardcoded, non-toggleable)."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_input(subtitle_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        escaped = str(subtitle_path).replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
+        codec_args = _codec_for(output)
+        cmd = ["ffmpeg", "-y", "-i", input_path, "-vf", f"subtitles='{escaped}'", *codec_args, output]
+        desc, ok = _subprocess_with_logging(cmd, f"Burned subtitles → {output}")
+        return desc
+
+    @staticmethod
     def slideshow(
         input_paths: list[str],
         output: str,

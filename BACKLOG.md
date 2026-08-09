@@ -28,8 +28,8 @@ Currently: `pytesseract` is a dependency but unused — no OCR-output tool exist
 
 ## Image
 
-- [ ] `image_ocr` — image → text (Tesseract, same dep as PDF OCR)
-- [ ] `image_rotate` — missing entirely (have crop/resize/compress/convert, no rotate)
+- [x] `image_ocr` — already shipped (`ImageToolkit.ocr`), note was stale
+- [x] `image_rotate` — already shipped (`ImageToolkit.rotate`), note was stale
 - [ ] `image_watermark`
 - [ ] `image_upscale` — AI upscale/enhance
 - [ ] `image_to_ico` — favicon/ICO export
@@ -37,12 +37,7 @@ Currently: `pytesseract` is a dependency but unused — no OCR-output tool exist
 
 ## Video
 
-- [ ] `video_merge` — concat multiple clips
-- [ ] `video_crop`, `video_rotate`, `video_resize`
-- [ ] `video_watermark`
-- [ ] `video_reverse`
-- [ ] `video_speed` — audio has it, video doesn't
-- [ ] `video_subtitle_burn`
+- [x] `video_merge`, `video_crop`, `video_rotate`, `video_resize`, `video_watermark`, `video_reverse`, `video_speed`, `video_subtitle_burn` — implemented 2026-08-09 in `VideoToolkit` (ffmpeg-based, same pattern as `trim`/`compress`). **Not yet wired into `server.py`/`cli.py`** — those files have a large uncommitted rewrite in progress, left untouched; wire in once that rewrite lands.
 - [ ] `transcribe` — video/audio → text (whisper or similar; separate research needed before picking a model)
 
 ## Audio
