@@ -30,10 +30,10 @@ Currently: `pytesseract` is a dependency but unused — no OCR-output tool exist
 
 - [x] `image_ocr` — already shipped (`ImageToolkit.ocr`), note was stale
 - [x] `image_rotate` — already shipped (`ImageToolkit.rotate`), note was stale
-- [ ] `image_watermark`
-- [ ] `image_upscale` — AI upscale/enhance
-- [ ] `image_to_ico` — favicon/ICO export
-- [ ] `image_collage`
+- [x] `image_watermark` — implemented 2026-08-09 (`ImageToolkit.watermark`, PIL alpha_composite, position+opacity)
+- [ ] `image_upscale` — AI upscale/enhance, needs a model dependency decision, not started
+- [x] `image_to_ico` — already covered by existing `convert` (`.ico` is in `SUPPORTED_FORMATS`), no dedicated tool needed
+- [x] `image_collage` — implemented 2026-08-09 (`ImageToolkit.collage`, fixed-size grid, distinct from existing side-by-side `merge`)
 
 ## Video
 

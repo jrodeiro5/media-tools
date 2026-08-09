@@ -9,8 +9,17 @@ from PIL import Image, ImageFilter
 from media_tools.utils import logger, validate_input, validate_output_dir
 
 SUPPORTED_FORMATS = {
-    "jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "ico",
-    "heic", "heif", "avif",
+    "jpg",
+    "jpeg",
+    "png",
+    "webp",
+    "gif",
+    "bmp",
+    "tiff",
+    "ico",
+    "heic",
+    "heif",
+    "avif",
 }
 
 
@@ -29,7 +38,7 @@ class ImageToolkit:
 
         ext = Path(output).suffix.lower().lstrip(".")
         if ext not in SUPPORTED_FORMATS:
-            supported = ', '.join(sorted(SUPPORTED_FORMATS))
+            supported = ", ".join(sorted(SUPPORTED_FORMATS))
             msg = f"unsupported output format '{ext}' — supported: {supported}"
             logger.warning(msg)
             return f"Error: {msg}"
@@ -48,7 +57,8 @@ class ImageToolkit:
 
     @staticmethod
     def resize(
-        input_path: str, output: str,
+        input_path: str,
+        output: str,
         width: int | None = None,
         height: int | None = None,
         percent: int | None = None,
@@ -229,10 +239,10 @@ class ImageToolkit:
             # Try to load a font, fall back to default
             try:
                 font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
-            except (OSError, IOError):
+            except OSError:
                 try:
                     font = ImageFont.truetype("/Library/Fonts/Arial.ttf", font_size)
-                except (OSError, IOError):
+                except OSError:
                     font = ImageFont.load_default()
 
             # Get text bounding box
@@ -358,6 +368,102 @@ class ImageToolkit:
         return f"Merged {len(input_paths)} images → {output}"
 
     @staticmethod
+    def watermark(
+        input_path: str,
+        watermark_path: str,
+        output: str,
+        position: str = "bottom-right",
+        margin: int = 10,
+        opacity: float = 1.0,
+    ) -> str:
+        """Overlay a watermark image onto another image."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_input(watermark_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+        if not 0.0 <= opacity <= 1.0:
+            return "Error: opacity must be between 0.0 and 1.0"
+
+        try:
+            base = Image.open(input_path).convert("RGBA")
+            mark = Image.open(watermark_path).convert("RGBA")
+
+            if opacity < 1.0:
+                alpha = mark.getchannel("A").point(lambda a: int(a * opacity))
+                mark.putalpha(alpha)
+
+            positions = {
+                "top-left": (margin, margin),
+                "top-right": (base.width - mark.width - margin, margin),
+                "bottom-left": (margin, base.height - mark.height - margin),
+                "bottom-right": (base.width - mark.width - margin, base.height - mark.height - margin),
+                "center": ((base.width - mark.width) // 2, (base.height - mark.height) // 2),
+            }
+            xy = positions.get(position)
+            if xy is None:
+                return f"Error: position must be one of {list(positions)}"
+
+            base.alpha_composite(mark, dest=xy)
+            if Path(output).suffix.lower() in (".jpg", ".jpeg"):
+                base = base.convert("RGB")
+            base.save(output)
+            logger.info("Watermarked → %s", output)
+        except Exception as exc:
+            logger.error("watermark failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Watermarked → {output}"
+
+    @staticmethod
+    def collage(
+        input_paths: list[str],
+        output: str,
+        columns: int = 2,
+        cell_size: int = 300,
+        spacing: int = 5,
+        background: str = "#ffffff",
+    ) -> str:
+        """Arrange images into a fixed-size grid collage."""
+        for f in input_paths:
+            err = validate_input(f)
+            if err:
+                return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+        if not input_paths:
+            return "Error: no input images provided"
+
+        try:
+            rows = (len(input_paths) + columns - 1) // columns
+            grid_w = columns * cell_size + (columns + 1) * spacing
+            grid_h = rows * cell_size + (rows + 1) * spacing
+            canvas = Image.new("RGB", (grid_w, grid_h), background)
+
+            for idx, path in enumerate(input_paths):
+                img = Image.open(path).convert("RGB")
+                img.thumbnail((cell_size, cell_size))
+                col, row = idx % columns, idx // columns
+                cell_x = spacing + col * (cell_size + spacing)
+                cell_y = spacing + row * (cell_size + spacing)
+                paste_x = cell_x + (cell_size - img.width) // 2
+                paste_y = cell_y + (cell_size - img.height) // 2
+                canvas.paste(img, (paste_x, paste_y))
+
+            canvas.save(output)
+            logger.info("Collage %dx%d → %s", columns, rows, output)
+        except Exception as exc:
+            logger.error("collage failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Collage ({len(input_paths)} images, {columns} cols) → {output}"
+
+    @staticmethod
     def blur(input_path: str, output: str, radius: float = 5.0) -> str:
         """Apply blur filter to an image."""
         err = validate_input(input_path)
@@ -387,6 +493,7 @@ class ImageToolkit:
 
         try:
             import pytesseract
+
             img = Image.open(input_path)
             text = pytesseract.image_to_string(img)
             text = text.strip()
@@ -409,10 +516,7 @@ class ImageToolkit:
             img = Image.open(input_path)
             size_mb = Path(input_path).stat().st_size / (1024 * 1024)
             return (
-                f"Format: {img.format}\n"
-                f"Mode: {img.mode}\n"
-                f"Size: {img.width}x{img.height}\n"
-                f"File size: {size_mb:.2f} MB"
+                f"Format: {img.format}\nMode: {img.mode}\nSize: {img.width}x{img.height}\nFile size: {size_mb:.2f} MB"
             )
         except Exception as exc:
             logger.error("info failed: %s", exc)
