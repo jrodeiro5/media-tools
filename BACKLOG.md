@@ -42,8 +42,8 @@ Currently: `pytesseract` is a dependency but unused — no OCR-output tool exist
 
 ## Audio
 
-- [ ] `audio_merge` — join clips
-- [ ] `audio_normalize` — volume normalize
+- [x] `audio_merge` — implemented 2026-08-09 (`AudioToolkit.merge`, pydub concat)
+- [x] `audio_normalize` — implemented 2026-08-09 (`AudioToolkit.normalize`, pydub `apply_gain` to target dBFS)
 - [ ] `transcribe` — shared with video, see above
 
 ## Cross-cutting

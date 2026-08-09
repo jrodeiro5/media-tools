@@ -106,6 +106,55 @@ class AudioToolkit:
         return f"Speed {factor}x → {output}"
 
     @staticmethod
+    def merge(input_paths: list[str], output: str) -> str:
+        """Concatenate multiple audio clips in order."""
+        for p in input_paths:
+            err = validate_input(p)
+            if err:
+                return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+        if not input_paths:
+            return "Error: no input audio files provided"
+
+        try:
+            combined = pydub.AudioSegment.from_file(input_paths[0])
+            for p in input_paths[1:]:
+                combined += pydub.AudioSegment.from_file(p)
+            ext = Path(output).suffix.lower().lstrip(".")
+            combined.export(output, format=ext)
+            logger.info("Merged %d clips → %s", len(input_paths), output)
+        except Exception as exc:
+            logger.error("merge failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Merged {len(input_paths)} clips → {output}"
+
+    @staticmethod
+    def normalize(input_path: str, output: str, target_dbfs: float = -20.0) -> str:
+        """Normalize audio volume to a target dBFS level."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            audio = pydub.AudioSegment.from_file(input_path)
+            change = target_dbfs - audio.dBFS
+            audio = audio.apply_gain(change)
+            ext = Path(output).suffix.lower().lstrip(".")
+            audio.export(output, format=ext)
+            logger.info("Normalized to %.1f dBFS → %s", target_dbfs, output)
+        except Exception as exc:
+            logger.error("normalize failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Normalized to {target_dbfs} dBFS → {output}"
+
+    @staticmethod
     def info(input_path: str) -> str:
         """Get audio metadata."""
         err = validate_input(input_path)
