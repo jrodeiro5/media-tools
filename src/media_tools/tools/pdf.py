@@ -15,6 +15,7 @@ from media_tools.utils import _subprocess_with_logging, logger, validate_input, 
 
 try:
     import liteparse
+
     HAS_LITEPARSE = True
 except ImportError:
     HAS_LITEPARSE = False
@@ -127,9 +128,7 @@ class PDFToolkit:
 
         try:
             with pdfplumber.open(input_path) as pdf:
-                text = "\n\n".join(
-                    page.extract_text() or "" for page in pdf.pages
-                )
+                text = "\n\n".join(page.extract_text() or "" for page in pdf.pages)
 
             if output:
                 err = validate_output_dir(output)
@@ -223,8 +222,11 @@ class PDFToolkit:
 
     @staticmethod
     def extract_structured(
-        input_path: str, output: str | None = None,
-        ocr: bool = False, language: str = "eng", dpi: int = 150,
+        input_path: str,
+        output: str | None = None,
+        ocr: bool = False,
+        language: str = "eng",
+        dpi: int = 150,
     ) -> str:
         """Extract structured text with bounding boxes using LiteParse.
 
@@ -280,6 +282,7 @@ class PDFToolkit:
 
             if output:
                 import json
+
                 Path(output).write_text(
                     json.dumps(structured, indent=2, ensure_ascii=False),
                     encoding="utf-8",
@@ -288,6 +291,7 @@ class PDFToolkit:
                 return f"Structured JSON → {output} ({result.num_pages} pages)"
 
             import json
+
             return json.dumps(structured, indent=2, ensure_ascii=False)
         except Exception as exc:
             logger.error("extract_structured failed: %s", exc)
@@ -295,7 +299,9 @@ class PDFToolkit:
 
     @staticmethod
     def extract_screenshots(
-        input_path: str, output_dir: str, dpi: int = 150,
+        input_path: str,
+        output_dir: str,
+        dpi: int = 150,
         page_numbers: list[int] | None = None,
     ) -> str:
         """Render PDF pages as PNG screenshots using LiteParse."""
@@ -354,8 +360,8 @@ class PDFToolkit:
             reader = pypdf.PdfReader(input_path)
             writer = pypdf.PdfWriter()
 
-            from reportlab.lib.pagesizes import A4
             from reportlab.lib.colors import HexColor
+            from reportlab.lib.pagesizes import A4
             from reportlab.pdfgen import canvas
 
             w, h = A4
@@ -401,8 +407,6 @@ class PDFToolkit:
         output: str,
         position: str = "bottom-center",
         format_str: str = "Page {page}",
-        font_size: int = 10,
-        font_color: str = "#000000",
     ) -> str:
         """Add page numbers to all pages of a PDF."""
         err = validate_input(input_path)
@@ -417,252 +421,8 @@ class PDFToolkit:
             writer = pypdf.PdfWriter()
 
             from reportlab.lib.pagesizes import A4
-            from reportlab.lib.colors import HexColor
-            from reportlab.pdfgen import canvas
-
-            w, h = A4
-            positions = {
-                "bottom-center": (w / 2, 50),
-                "bottom-right": (w - 100, 50),
-                "top-center": (w / 2, h - 50),
-                "top-right": (w - 100, h - 50),
-            }
-            x, y = positions.get(position, positions["bottom-center"])
-
-            for i, page in enumerate(reader.pages):
-                packet = io.BytesIO()
-                c = canvas.Canvas(packet, pagesize=A4)
-                c.setFont("Helvetica", font_size)
-                c.setFillColor(HexColor(font_color))
-                page_label = format_str.replace("{page}", str(i + 1))
-                if "center" in position:
-                    c.drawCentredString(x, y, page_label)
-                else:
-                    c.drawString(x, y, page_label)
-                c.save()
-                packet.seek(0)
-
-                overlay = pypdf.PdfReader(packet)
-                page.merge_page(overlay.pages[0])
-                writer.add_page(page)
-
-            writer.write(output)
-            writer.close()
-            logger.info("Page numbers → %s", output)
-        except Exception as exc:
-            logger.error("add_page_numbers failed: %s", exc)
-            return f"Error: {exc}"
-
-        return f"Page numbers → {output}"
-
-    @staticmethod
-    def protect(
-        input_path: str,
-        output: str,
-        password: str,
-        owner_password: str | None = None,
-    ) -> str:
-        """Add password protection to a PDF."""
-        err = validate_input(input_path)
-        if err:
-            return err
-        err = validate_output_dir(output)
-        if err:
-            return err
-
-        try:
-            reader = pypdf.PdfReader(input_path)
-            writer = pypdf.PdfWriter()
-
-            for page in reader.pages:
-                writer.add_page(page)
-
-            writer.encrypt(password, owner_password or password)
-            writer.write(output)
-            writer.close()
-            logger.info("Protected PDF → %s", output)
-        except Exception as exc:
-            logger.error("protect failed: %s", exc)
-            return f"Error: {exc}"
-
-        return f"PDF protected with password → {output}"
-
-    @staticmethod
-    def unlock(input_path: str, output: str, password: str) -> str:
-        """Remove password protection from a PDF."""
-        err = validate_input(input_path)
-        if err:
-            return err
-        err = validate_output_dir(output)
-        if err:
-            return err
-
-        try:
-            reader = pypdf.PdfReader(input_path)
-            if not reader.is_encrypted:
-                return "Error: PDF is not encrypted"
-
-            reader.decrypt(password)
-            writer = pypdf.PdfWriter()
-
-            for page in reader.pages:
-                writer.add_page(page)
-
-            writer.write(output)
-            writer.close()
-            logger.info("Unlocked PDF → %s", output)
-        except Exception as exc:
-            logger.error("unlock failed: %s", exc)
-            return f"Error: {exc}"
-
-        return f"PDF unlocked → {output}"
-
-    @staticmethod
-    def images_to_pdf(
-        input_paths: list[str],
-        output: str,
-        fit: str = "fit",
-        quality: int = 85,
-    ) -> str:
-        """Convert one or more images to a single PDF.
-
-        Fit modes: fit (default), width, height, fill.
-        """
-        for f in input_paths:
-            err = validate_input(f)
-            if err:
-                return err
-        err = validate_output_dir(output)
-        if err:
-            return err
-
-        try:
-            from PIL import Image
-            import io
-
-            writer = pypdf.PdfWriter()
-
-            for img_path in input_paths:
-                img = Image.open(img_path)
-                if img.mode == "RGBA":
-                    img = img.convert("RGB")
-
-                # Convert image to PDF page
-                img_stream = io.BytesIO()
-                img.save(img_stream, format="JPEG", quality=quality)
-                img_stream.seek(0)
-
-                img_pdf = pypdf.PdfReader(img_stream)
-                writer.add_page(img_pdf.pages[0])
-
-            writer.write(output)
-            writer.close()
-            logger.info("Images → PDF (%d pages) → %s", len(input_paths), output)
-        except Exception as exc:
-            logger.error("images_to_pdf failed: %s", exc)
-            return f"Error: {exc}"
-
-        return f"Images → PDF ({len(input_paths)} pages) → {output}"
-
-    @staticmethod
-    def reorder_pages(
-        input_path: str,
-        output: str,
-        pages: list[int],
-    ) -> str:
-        """Reorder PDF pages. pages: list of 1-indexed page numbers in desired order.
-
-        Example: [3, 1, 2] puts page 3 first, then 1, then 2.
-        """
-        err = validate_input(input_path)
-        if err:
-            return err
-        err = validate_output_dir(output)
-        if err:
-            return err
-
-        try:
-            reader = pypdf.PdfReader(input_path)
-            total = len(reader.pages)
-            writer = pypdf.PdfWriter()
-
-            for p in pages:
-                idx = p - 1  # Convert to 0-indexed
-                if idx < 0 or idx >= total:
-                    return f"Error: page {p} out of range (1-{total})"
-                writer.add_page(reader.pages[idx])
-
-            writer.write(output)
-            writer.close()
-            logger.info("Reordered pages → %s", output)
-        except Exception as exc:
-            logger.error("reorder_pages failed: %s", exc)
-            return f"Error: {exc}"
-
-        return f"Pages reordered → {output}"
-
-    @staticmethod
-    def delete_pages(
-        input_path: str,
-        output: str,
-        pages: list[int],
-    ) -> str:
-        """Delete specific pages from a PDF. pages: list of 1-indexed page numbers to remove.
-
-        Example: [2, 4, 5] removes pages 2, 4, and 5.
-        """
-        err = validate_input(input_path)
-        if err:
-            return err
-        err = validate_output_dir(output)
-        if err:
-            return err
-
-        try:
-            reader = pypdf.PdfReader(input_path)
-            total = len(reader.pages)
-            to_delete = set(p - 1 for p in pages)  # Convert to 0-indexed
-
-            for p in pages:
-                if p < 1 or p > total:
-                    return f"Error: page {p} out of range (1-{total})"
-
-            writer = pypdf.PdfWriter()
-            for i, page in enumerate(reader.pages):
-                if i not in to_delete:
-                    writer.add_page(page)
-
-            writer.write(output)
-            writer.close()
-            logger.info("Deleted pages %s → %s", pages, output)
-        except Exception as exc:
-            logger.error("delete_pages failed: %s", exc)
-            return f"Error: {exc}"
-
-        return f"Pages deleted → {output}"
-
-    @staticmethod
-    def add_page_numbers(
-        input_path: str,
-        output: str,
-        position: str = "bottom-center",
-        format_str: str = "Page {page}",
-    ) -> str:
-        """Add page numbers to all pages of a PDF."""
-        err = validate_input(input_path)
-        if err:
-            return err
-        err = validate_output_dir(output)
-        if err:
-            return err
-
-        try:
-            reader = pypdf.PdfReader(input_path)
-            writer = pypdf.PdfWriter()
-
-            from reportlab.lib.pagesizes import A4
-            from reportlab.pdfgen import canvas
             from reportlab.lib.units import mm
+            from reportlab.pdfgen import canvas
 
             w, h = A4
             positions = {
@@ -766,9 +526,9 @@ class PDFToolkit:
             return err
 
         try:
+            from PIL import Image as PILImage
             from reportlab.lib.pagesizes import A4
             from reportlab.pdfgen import canvas
-            from PIL import Image as PILImage
 
             packets = []
             for img_path in input_paths:
@@ -949,9 +709,7 @@ class PDFToolkit:
             # Fill fields
             fields_obj = reader.get_fields()
             if fields_obj:
-                writer.update_page_form_field_values(
-                    writer.pages[0], fields, append=True
-                )
+                writer.update_page_form_field_values(writer.pages[0], fields, append=True)
 
             writer.write(output)
             writer.close()
@@ -1072,10 +830,14 @@ class PDFToolkit:
 
         try:
             cmd = [
-                "npx", "firecrawl", "parse",
+                "npx",
+                "firecrawl",
+                "parse",
                 input_path,
-                "-f", "markdown",
-                "-k", api_key,
+                "-f",
+                "markdown",
+                "-k",
+                api_key,
             ]
 
             if pages:
@@ -1127,6 +889,7 @@ class PDFToolkit:
 
         try:
             from pdf2docx import Converter
+
             cv = Converter(input_path)
             cv.convert(output)
             cv.close()
@@ -1138,12 +901,13 @@ class PDFToolkit:
 
     @staticmethod
     def redact(
-        input_path: str, output: str,
+        input_path: str,
+        output: str,
         text_patterns: list[str] | None = None,
         rect_areas: list[dict] | None = None,
     ) -> str:
         """Redact (black out) sensitive information from PDF.
-        
+
         text_patterns: list of text strings to redact
         rect_areas: list of {x, y, width, height} to redact
         """
@@ -1157,28 +921,45 @@ class PDFToolkit:
         try:
             import pypdf
             from reportlab.pdfgen import canvas as pdf_canvas
-            from reportlab.lib.pagesizes import letter
-            from reportlab.lib.units import inch
+
+            # Collect per-page rectangles (top-left origin, points) to black out.
+            page_rects: dict[int, list[tuple[float, float, float, float]]] = {}
+
+            for rect in rect_areas or []:
+                page_no = rect.get("page", 0)
+                x, y, w, h = rect.get("x", 0), rect.get("y", 0), rect.get("width", 100), rect.get("height", 50)
+                page_rects.setdefault(page_no, []).append((x, y, w, h))
+
+            if text_patterns:
+                with pdfplumber.open(input_path) as pdf:
+                    for page_no, page in enumerate(pdf.pages):
+                        for pattern in text_patterns:
+                            for word in page.extract_words():
+                                if pattern in word["text"]:
+                                    x0, top, x1, bottom = word["x0"], word["top"], word["x1"], word["bottom"]
+                                    page_rects.setdefault(page_no, []).append((x0, top, x1 - x0, bottom - top))
 
             reader = pypdf.PdfReader(input_path)
             writer = pypdf.PdfWriter()
 
-            for page in reader.pages:
-                page_copy = page.clone()
-                # Add redaction rectangles
-                for rect in (rect_areas or []):
-                    x, y, w, h = rect.get('x', 0), rect.get('y', 0), rect.get('width', 100), rect.get('height', 50)
-                    # Convert to PDF coordinates (bottom-left origin)
-                    pdf_y = letter[1] - y - h
-                    page_copy.merge_page(
-                        pdf_canvas.Canvas(io.BytesIO(), pagesize=letter)
-                        .setFillColor('black')
-                        .rect(x * inch, pdf_y, w * inch, h * inch, fill=True)
-                        .getpdfdata()
-                    )
+            for page_no, page in enumerate(reader.pages):
+                page_copy = page.clone(writer)
+                rects = page_rects.get(page_no, [])
+                if rects:
+                    page_w, page_h = float(page.mediabox.width), float(page.mediabox.height)
+                    buf = io.BytesIO()
+                    c = pdf_canvas.Canvas(buf, pagesize=(page_w, page_h))
+                    c.setFillColor("black")
+                    for x, y, w, h in rects:
+                        # y is measured from the top; convert to PDF's bottom-left origin.
+                        c.rect(x, page_h - y - h, w, h, fill=True, stroke=False)
+                    c.save()
+                    buf.seek(0)
+                    overlay = pypdf.PdfReader(buf)
+                    page_copy.merge_page(overlay.pages[0])
                 writer.add_page(page_copy)
 
-            with open(output, 'wb') as f:
+            with open(output, "wb") as f:
                 writer.write(f)
             logger.info("Redacted PDF → %s", output)
             return f"Redacted PDF → {output}"

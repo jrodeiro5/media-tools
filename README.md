@@ -49,8 +49,8 @@ Add as an external tool server pointing at your `media-tools-server` endpoint.
 ### Office (3)
 `office_to_markdown`, `office_to_pdf`
 
-### AI-Powered (4)
-`document_summarize`, `document_qa`, `document_translate`, `text_to_speech`
+### AI-Powered (3)
+`document_summarize`, `document_qa`, `document_translate`
 
 ## Requirements
 
