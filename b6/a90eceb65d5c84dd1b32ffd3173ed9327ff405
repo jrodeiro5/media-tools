@@ -1,0 +1,57 @@
+almanac/README.md
+  s_df3e0a9fb22975::t_5b8e0d5d3dc1eb 13-19,35-50
+  s_df3e0a9fb22975::t_c742adcd6d9c51 51
+almanac/architecture/mcp-server.md
+  s_df3e0a9fb22975::t_dcacaea495de6e 24,60,63
+  s_df3e0a9fb22975::t_66bfd22069625d 1-4,8,12-23,25-59,61-62
+  s_df3e0a9fb22975::t_5a219887fdb199 5-7,9-11
+almanac/decisions/local-tts-kokoro-not-chatterbox.md
+  s_df3e0a9fb22975::t_5a219887fdb199 5-7,9-11,13-15,17-19
+  s_8fb7ed3e9a65c3::t_d7f192500c8920 146-176
+  s_8fb7ed3e9a65c3::t_a030a91b787d48 1-4,8,12,16,20-64,66-72,74-145,177-188
+  s_df3e0a9fb22975::t_dcacaea495de6e 65,73,189-191
+  s_df3e0a9fb22975::t_d0563786b1150a 192-193
+almanac/incidents/keyv-npm-worm-audit.md
+  s_df3e0a9fb22975::t_d0563786b1150a 48-51,53-54
+  s_df3e0a9fb22975::t_dfbda2e4c96ae1 160
+  s_df3e0a9fb22975::t_ddeebec88ebc10 52
+  s_df3e0a9fb22975::t_5a219887fdb199 5-7,9-15,17-19,21-23,25-27,29-31,33-35
+almanac/architecture/cli-dispatch.md
+  s_df3e0a9fb22975::t_5a219887fdb199 5-7,9-11
+  s_df3e0a9fb22975::t_dcacaea495de6e 27,47
+  s_df3e0a9fb22975::t_66bfd22069625d 1-4,8,12-26,28-46,48-68
+almanac/architecture/utilities.md
+  s_df3e0a9fb22975::t_dcacaea495de6e 14
+  s_df3e0a9fb22975::t_66bfd22069625d 1-4,8-13,15-50
+  s_df3e0a9fb22975::t_5a219887fdb199 5-7
+almanac/architecture/toolkit-pattern.md
+  s_df3e0a9fb22975::t_dcacaea495de6e 49-55,58,90-96
+  s_df3e0a9fb22975::t_66bfd22069625d 1-2,4,8,12,16,20,24,28,32,36-48,56-57,59-89,97-113
+  s_df3e0a9fb22975::t_5a219887fdb199 3,5-7,9-11,13-15,17-19,21-23,25-27,29-31,33-35
+almanac/topics.yaml
+  s_df3e0a9fb22975::t_5b8e0d5d3dc1eb 17-21,24,27-30,39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "b6a90eceb65d5c84dd1b32ffd3173ed9327ff405",
+  "prompts": {},
+  "sessions": {
+    "s_8fb7ed3e9a65c3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9c8df96e-3684-4ee2-a6a2-9b63412c249b",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_df3e0a9fb22975": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ff1e4-6ab5-7703-911d-3e862ff907bd",
+        "model": "gpt-5.4-mini"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
