@@ -9,37 +9,32 @@ topics:
     description: System design, module boundaries, and runtime behavior
     parents: []
 
-  - slug: server
-    title: Server
-    description: MCP server runtime, FastMCP, transport, and tool registration
-    parents: [architecture]
-
   - slug: cli
     title: CLI
     description: Agent-native command-line interface and dispatch
     parents: [architecture]
 
-  - slug: toolkits
-    title: Toolkits
-    description: PDF, Image, Audio, Video, and Office processing modules
+  - slug: server
+    title: Server
+    description: MCP server runtime, FastMCP, transport, and tool registration
     parents: [architecture]
 
-  - slug: pdf
-    title: PDF Processing
-    description: PDF manipulation tools, pypdf, pdfplumber, Ghostscript, Firecrawl
-    parents: [toolkits]
+  - slug: toolkits
+    title: Toolkits
+    description: The 7 toolkit classes (PDF, Image, Audio, Video, Office, AI, TTS)
+    parents: [architecture]
+
+  - slug: incidents
+    title: Incidents
+    description: Security audits, supply-chain attacks, and operational incidents
+    parents: []
 
   - slug: decisions
     title: Decisions
     description: Architectural choices, breaking changes, and platform-specific workarounds
     parents: []
 
-  - slug: platform
-    title: Platform
-    description: macOS-specific constraints and tooling requirements
-    parents: []
-
   - slug: integrations
     title: Integrations
-    description: OpenWebUI, LiteLLM, and external AI model routing
+    description: LiteLLM proxy, omlx, Kokoro, and external AI model routing
     parents: []

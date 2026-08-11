@@ -2,38 +2,38 @@
 title: keyv/Cacheable npm worm (Shai-Hulud) — machine audit
 topics: [incidents]
 sources:
-  - ref: transcript:/Users/jrodeiro/.claude/projects/-Users-jrodeiro-dev-infra-media-tools/e39f91d5-a604-4ee3-b44a-ece95962aac7.jsonl
-    kind: transcript
-    title: "Transcript e39f91d5 (Aug 5 2026)"
-    fingerprint: null
-  - ref: https://www.kodemsecurity.com/resources/keyv-supply-chain-attack-shai-hulud-npm-worm-affected-versions-iocs-and-first-hour-response-runbook
-    kind: web
+  - id: kodem-ioc
+    type: web
+    target: https://www.kodemsecurity.com/resources/keyv-supply-chain-attack-shai-hulud-npm-worm-affected-versions-iocs-and-first-hour-response-runbook
     title: "Keyv npm Supply Chain Attack | IOCs and Runbook | Kodem"
-    fingerprint: null
-  - ref: https://thehackernews.com/2026/08/keyv-linked-npm-worm-poisons-hundreds.html
-    kind: web
+  - id: kodem-runbook
+    type: web
+    target: https://www.kodemsecurity.com/resources/keyv-supply-chain-attack-shai-hulud-npm-worm-affected-versions-iocs-and-first-hour-response-runbook
+    title: "Keyv npm Supply Chain Attack | IOCs and Runbook | Kodem"
+  - id: thehackernews
+    type: web
+    target: https://thehackernews.com/2026/08/keyv-linked-npm-worm-poisons-hundreds.html
     title: "Keyv-Linked npm Worm Poisons Hundreds of Packages, Plants Claude Code and VS Code Hooks"
-    fingerprint: null
-  - ref: https://cloudsmith.com/blog/keyv-and-cacheable-npm-packages-compromised-in-active-supply-chain-attack
-    kind: web
+  - id: cloudsmith
+    type: web
+    target: https://cloudsmith.com/blog/keyv-and-cacheable-npm-packages-compromised-in-active-supply-chain-attack
     title: "Keyv and Cacheable npm Packages Compromised in Active Supply-Chain Attack | Cloudsmith"
-    fingerprint: null
-  - ref: https://www.aikido.dev/blog/keyv-and-friends-compromised-in-npm-supply-chain-attack
-    kind: web
+  - id: aikido
+    type: web
+    target: https://www.aikido.dev/blog/keyv-and-friends-compromised-in-npm-supply-chain-attack
     title: "Keyv and friends compromised in npm supply chain attack"
-    fingerprint: null
-  - ref: https://socket.dev/blog/popular-npm-packages-in-the-keyv-and-cacheable-namespaces-compromised-in-active-supply-chain
-    kind: web
+  - id: socket
+    type: web
+    target: https://socket.dev/blog/popular-npm-packages-in-the-keyv-and-cacheable-namespaces-compromised-in-active-supply-chain
     title: "Popular npm Packages in the keyv and Cacheable Namespaces Compromised in Active Supply-Chain"
-    fingerprint: null
-  - ref: https://strobes.co/blog/keyv-cacheable-npm-supply-chain-attack/
-    kind: web
+  - id: strobes
+    type: web
+    target: https://strobes.co/blog/keyv-cacheable-npm-supply-chain-attack/
     title: "Keyv and Cacheable npm Supply Chain Attack: What to Do | Strobes"
-    fingerprint: null
-  - ref: https://www.wiz.io/blog/keyv-and-cacheable-npm-supply-chain-attack
-    kind: web
+  - id: wiz
+    type: web
+    target: https://www.wiz.io/blog/keyv-and-cacheable-npm-package-hijacked-in-supply-chain-attack
     title: "keyv and cacheable npm Package Hijacked in Supply Chain Attack | Wiz Blog"
-    fingerprint: null
 ---
 
 # keyv/Cacheable npm worm (Shai-Hulud) — machine audit
@@ -45,7 +45,13 @@ their common dependencies. The resulting self-propagating worm, tracked as
 targeted Claude Code and VS Code installations [@kodem-ioc].
 
 This page records the audit performed on this machine (Aug 5 2026) and the
-reusable procedure for checking whether the machine is affected.
+reusable procedure for checking whether the machine is affected. Multiple
+security researchers independently documented the attack and its remediation:
+Kodem Security published the IOC list and runbook [@kodem-ioc], Cloudsmith
+analyzed the compromised namespace [@cloudsmith], Socket.dev mapped the affected
+packages [@socket], Aikido published a remediation guide [@aikido], Strobes documented what to do [@strobes], and Wiz published a post-incident analysis [@wiz],
+[@aikido; @strobes], and The Hacker News reported on the worm's targeting of
+Claude Code and VS Code installations [@thehackernews].
 
 ## What the attack does
 
@@ -151,4 +157,4 @@ The machine was determined to be clean.
 - [Aikido blog](https://www.aikido.dev/blog/keyv-and-friends-compromised-in-npm-supply-chain-attack)
 - [Socket.dev blog](https://socket.dev/blog/popular-npm-packages-in-the-keyv-and-cacheable-namespaces-compromised-in-active-supply-chain)
 - [Strobes response guide](https://strobes.co/blog/keyv-cacheable-npm-supply-chain-attack/)
-- [Wiz blog](https://www.wiz.io/blog/keyv-and-cacheable-npm-supply-chain-attack)
+- [Wiz blog](https://www.wiz.io/blog/keyv-and-cacheable-npm-package-hijacked-in-supply-chain-attack)
