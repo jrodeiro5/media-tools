@@ -12,7 +12,7 @@ project context that future agents should not rediscover from scratch.
 
 ## What the repo is
 
-`media-tools` is an MCP server exposing 50+ multimedia processing tools
+`media-tools` is an MCP server exposing 49 multimedia processing tools
 covering PDF, image, audio, video, Office documents, and AI-powered document
 analysis. It runs locally via [FastMCP](https://github.com/paulpavad/fastmcp)
 and can be dropped into any MCP-compatible client.

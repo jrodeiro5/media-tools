@@ -6,10 +6,6 @@ sources:
     type: web
     target: https://www.kodemsecurity.com/resources/keyv-supply-chain-attack-shai-hulud-npm-worm-affected-versions-iocs-and-first-hour-response-runbook
     title: "Keyv npm Supply Chain Attack | IOCs and Runbook | Kodem"
-  - id: kodem-runbook
-    type: web
-    target: https://www.kodemsecurity.com/resources/keyv-supply-chain-attack-shai-hulud-npm-worm-affected-versions-iocs-and-first-hour-response-runbook
-    title: "Keyv npm Supply Chain Attack | IOCs and Runbook | Kodem"
   - id: thehackernews
     type: web
     target: https://thehackernews.com/2026/08/keyv-linked-npm-worm-poisons-hundreds.html
@@ -64,11 +60,11 @@ install`. Its stages are:
    environment variables and credential stores.
 4. **Exfiltration and self-propagation.** Sends stolen tokens to attacker-controlled
    infrastructure and publishes new malicious package versions to expand the
-   attack surface [@kodem-runbook].
+   attack surface [@kodem-ioc].
 
 A notable persistence twist: the worm installs Claude Code and VS Code hooks that
 run *without* triggering `npm install`, so simply not installing the compromised
-packages does not guarantee safety if the hooks were already planted [@kodem-runbook].
+packages does not guarantee safety if the hooks were already planted [@kodem-ioc].
 
 ## Audit procedure
 

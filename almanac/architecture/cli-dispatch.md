@@ -24,7 +24,7 @@ The CLI exists only to expose the same methods through `argparse`.
 
 ## Entry points
 
-`pyproject.toml` declares eight console scripts [@pyproject]:
+`pyproject.toml` declares nine console scripts [@pyproject]:
 
 | script | purpose |
 |---|---|
@@ -66,3 +66,6 @@ any agent parse CLI output without understanding per-tool formats.
   argparse has no third-party dependencies and works in minimal environments.
 - The CLI does not validate file existence before calling the toolkit — that
   validation happens inside each `Toolkit` method via `validate_input()`.
+- The CLI covers only PDF, Image, Audio, Video, and Office categories. AI and
+  TTS tools are server-only (registered via `@mcp.tool` in `server.py` but
+  not wired through `cli.py`).

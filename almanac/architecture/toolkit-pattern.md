@@ -95,10 +95,12 @@ Each toolkit pulls in its own dependencies:
 - **AIToolkit**: `anydoc`, `litellm` (via HTTP) [@ai-py]
 - **TTSToolkit**: `litellm` (via HTTP), `omlx` (local) [@tts-py]
 
-The CLI and server import all toolkits at module level, so all dependencies
-must be installed for any invocation. This is a known limitation — scoped
-servers reduce the *exposed* tool surface but not the *loaded* dependency
-surface.
+The CLI and server import the 5 core toolkits (PDF, Video, Image, Audio,
+Office) at module level, so those dependencies must be installed for any
+invocation. AI and TTS are lazy-imported inside their handler functions —
+`litellm` and `omlx` are loaded only when those tools are invoked. This is
+intentional: it avoids loading heavy VLM and audio model dependencies when
+only PDF or image tools are needed.
 
 ## Adding a new toolkit
 

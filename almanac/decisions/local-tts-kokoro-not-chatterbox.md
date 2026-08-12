@@ -2,6 +2,10 @@
 title: Local TTS uses Kokoro, not Chatterbox — autoregressive models run away
 topics: [decisions, integrations, toolkits]
 sources:
+  - id: backlogs-md
+    type: file
+    target: BACKLOG.md
+    title: "BACKLOG.md — implementation backlog"
   - id: tts-py
     type: file
     target: src/media_tools/tools/tts.py
@@ -181,7 +185,7 @@ omlx, alongside the Kokoro discovery gap above.
   Bare names 404. Ornith and Gemma have short aliases; audio models do not.
 - STT is the sibling category and is settled: `local-whisper-stt` →
   `mlx-community--whisper-large-v3-turbo-4bit` (447 MB). The `transcribe`
-  tool in [BACKLOG.md](../../BACKLOG.md) can now be implemented against it;
+  tool in BACKLOG.md [@backlogs-md] can now be implemented against it;
   the backend is proven.
 - Orca IDE's dictation is a separate stack (sherpa-onnx ONNX, Parakeet) with
   a hardcoded cloud URL and no base-URL override. It cannot be pointed at
