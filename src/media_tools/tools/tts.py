@@ -1,88 +1,114 @@
-"""Text-to-Speech toolkit using Fish Audio SDK."""
+"""Text-to-Speech toolkit using the local LiteLLM proxy (omlx / Kokoro)."""
 
 from __future__ import annotations
 
+import json
 import os
+import urllib.request
 from pathlib import Path
 
-from media_tools.utils import logger, validate_input, validate_output_dir
+from media_tools.utils import logger, validate_output_dir
+
+# Kokoro emits 24 kHz mono int16.
+_SAMPLE_RATE = 24000
+_BYTES_PER_SAMPLE = 2
+
+# Default voice per language. Kokoro voice ids encode language+gender:
+# a=en-US, b=en-GB, e=es, f=fr, h=hi, i=it, j=ja, p=pt-BR, z=zh.
+# Full list in VOICES.md inside the model snapshot.
+_DEFAULT_VOICES = {
+    "en": "af_heart",
+    "es": "ef_dora",
+    "fr": "ff_siwis",
+    "it": "if_sara",
+    "pt": "pf_dora",
+    "ja": "jf_alpha",
+    "zh": "zf_xiaobei",
+    "hi": "hf_alpha",
+}
 
 
 class TTSToolkit:
     name = "tts"
 
     @staticmethod
+    def _endpoint() -> str:
+        base = os.environ.get("LITELLM_URL", "http://localhost:4000").rstrip("/")
+        return f"{base}/v1/audio/speech"
+
+    @staticmethod
+    def _model() -> str:
+        return os.environ.get("TTS_MODEL", "local-kokoro-tts")
+
+    @staticmethod
     def convert(
         text: str,
         output: str,
-        voice_id: str | None = None,
-        speed: float = 1.0,
-        audio_format: str = "mp3",
-        latency: str = "balanced",
-        reference_audio: str | None = None,
-        reference_text: str | None = None,
+        voice: str = "",
+        audio_format: str = "wav",
+        language: str = "en",
+        timeout: int = 300,
     ) -> str:
-        """Convert text to speech using Fish Audio.
+        """Convert text to speech locally. No API key, no network egress.
 
         Args:
             text: Text to convert to speech
             output: Output audio file path
-            voice_id: Pre-defined voice ID (optional)
-            speed: Speech speed (0.5-2.0, default 1.0)
-            audio_format: Output format (mp3, wav, pcm, opus)
-            latency: Latency mode (normal, balanced)
-            reference_audio: Path to reference audio for voice cloning
-            reference_text: Text spoken in reference audio (for cloning)
+            voice: Kokoro voice id (e.g. "af_heart", "ef_dora"). Empty picks
+                the default voice for `language`.
+            audio_format: "wav" (native) or "mp3" (converted via pydub/ffmpeg)
+            language: ISO code used to pick the default voice and G2P
+            timeout: Seconds to wait for generation
         """
         err = validate_output_dir(output)
         if err:
             return err
+        if not text.strip():
+            return "Error: text is empty"
 
+        voice = voice or _DEFAULT_VOICES.get(language, "af_heart")
+
+        payload = json.dumps(
+            {
+                "model": TTSToolkit._model(),
+                "input": text,
+                "voice": voice,
+                "response_format": "wav",
+                "language": language,
+            }
+        ).encode()
+        req = urllib.request.Request(
+            TTSToolkit._endpoint(),
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {os.environ.get('LITELLM_API_KEY', 'sk-no-key-required')}",
+            },
+        )
+
+        # endpoint is TTSToolkit._endpoint(), built from LITELLM_URL env var,
+        # not from any tool argument (text/voice/language) — not attacker-controlled.
         try:
-            from fishaudio import FishAudio
-            from fishaudio.types import ReferenceAudio, TTSConfig, Prosody
-
-            api_key = os.environ.get("FISH_API_KEY")
-            if not api_key:
-                return "Error: FISH_API_KEY not set. Get one at https://fish.audio"
-
-            client = FishAudio(api_key=api_key)
-
-            # Build references for voice cloning if provided
-            references = None
-            if reference_audio:
-                err_ref = validate_input(reference_audio)
-                if err_ref:
-                    return err_ref
-                if not reference_text:
-                    return "Error: reference_text required when using reference_audio"
-
-                with open(reference_audio, "rb") as f:
-                    audio_bytes = f.read()
-                references = [
-                    ReferenceAudio(audio=audio_bytes, text=reference_text)
-                ]
-
-            # Build config
-            config = TTSConfig(
-                reference_id=voice_id,
-                format=audio_format,
-                latency=latency,
-                prosody=Prosody(speed=speed),
-            )
-
-            # Convert
-            audio = client.tts.convert(
-                text=text,
-                config=config,
-                references=references,
-            )
-
-            # Save to file
-            Path(output).write_bytes(audio)
-            logger.info("TTS converted → %s", output)
-            return f"Speech → {output} ({audio_format.upper()}, {speed}x speed)"
-
+            with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+                audio = resp.read()
         except Exception as exc:
             logger.error("TTS failed: %s", exc)
             return f"Error: {exc}"
+
+        seconds = max(len(audio) - 44, 0) / (_SAMPLE_RATE * _BYTES_PER_SAMPLE)
+
+        if audio_format == "mp3":
+            try:
+                import io
+
+                from pydub import AudioSegment
+
+                AudioSegment.from_wav(io.BytesIO(audio)).export(output, format="mp3")
+            except Exception as exc:
+                logger.error("mp3 export failed: %s", exc)
+                return f"Error: mp3 export failed ({exc}). Use audio_format='wav'."
+        else:
+            Path(output).write_bytes(audio)
+
+        logger.info("TTS converted → %s", output)
+        return f"Speech → {output} ({audio_format.upper()}, {seconds:.1f}s, voice={voice})"

@@ -21,7 +21,7 @@ class AIToolkit:
     @staticmethod
     def _get_model() -> str:
         """Get model name from environment."""
-        return os.environ.get("LLM_MODEL", "google/gemma-4-e2e")
+        return os.environ.get("LLM_MODEL", "local-gemma4-e4b-vision")
 
     @staticmethod
     def _read_document(input_path: str) -> str:
@@ -37,6 +37,7 @@ class AIToolkit:
         """Call LLM via LiteLLM proxy."""
         try:
             from openai import OpenAI
+
             client = OpenAI(
                 base_url=AIToolkit._get_lite_llm_url(),
                 api_key=os.environ.get("LITELLM_API_KEY", "sk-no-key-required"),
@@ -49,7 +50,7 @@ class AIToolkit:
                 ],
                 max_tokens=4096,
             )
-            return response.choices[0].message.content
+            return response.choices[0].message.content or ""
         except Exception as exc:
             logger.error("LLM call failed: %s", exc)
             return f"Error: LLM call failed: {exc}"
@@ -98,7 +99,8 @@ class AIToolkit:
             return document_content
 
         answer = AIToolkit._call_llm(
-            f"Answer the following question based on the document content. If the answer is not in the document, say so.\n\nQuestion: {question}",
+            "Answer the following question based on the document content. "
+            f"If the answer is not in the document, say so.\n\nQuestion: {question}",
             document_content,
         )
 

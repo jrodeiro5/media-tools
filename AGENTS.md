@@ -1,7 +1,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **media-tools** (553 symbols, 1164 relationships, 46 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **media-tools** (605 symbols, 1281 relationships, 50 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 
@@ -47,8 +47,41 @@ This project is indexed by GitNexus as **media-tools** (553 symbols, 1164 relati
 
 ## OpenWiki
 
-This repository uses OpenWiki for recurring code documentation. Start with `openwiki/quickstart.md`, then follow its links to architecture, workflows, domain concepts, operations, integrations, testing guidance, and source maps.
-
-The scheduled OpenWiki GitHub Actions workflow refreshes the repository wiki. Do not hand-edit generated OpenWiki pages unless explicitly asked; prefer updating source code/docs and letting OpenWiki regenerate.
+See [AGENTS.md](AGENTS.md) for OpenWiki agent instructions.
 
 <!-- OPENWIKI:END -->
+
+<!-- atlas:start -->
+## Atlas — machine-wide context
+
+Atlas maps every repo, service and config dir on this machine. This one's entity
+doc carries its role, stack, services, CI state, last commit, and what is
+currently running out of it.
+
+```bash
+qmd get atlas/repos/media-tools.md    # this repo's entity doc
+qmd query "<topic>"             # search every repo/service/config on this machine
+```
+
+Also here: `almanac/` = why it was built this way (mined decisions,
+pitfalls, incidents). `openwiki/` = how it works right now (generated from
+current code).
+
+Atlas regenerates the entity doc from scans — hand-edits go below its
+`<!-- manual -->` marker only. Source: ~/dev/infra/atlas.
+<!-- atlas:end -->
+ last commit, and what is
+currently running out of it.
+
+```bash
+qmd get atlas/repos/media-tools.md    # this repo's entity doc
+qmd query "<topic>"             # search every repo/service/config on this machine
+```
+
+Also here: `almanac/` = why it was built this way (mined decisions,
+pitfalls, incidents). `openwiki/` = how it works right now (generated from
+current code).
+
+Atlas regenerates the entity doc from scans — hand-edits go below its
+`<!-- manual -->` marker only. Source: ~/dev/infra/atlas.
+<!-- atlas:end -->

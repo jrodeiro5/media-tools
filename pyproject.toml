@@ -4,15 +4,15 @@ version = "0.1.0"
 description = "MCP server with multimedia processing tools (PDF, video, image, audio, office docs)"
 requires-python = ">=3.11"
 dependencies = [
-    "mcp>=1.0.0",
-    "pypdf>=5.0.0",
+    "mcp>=1.29.0,<2",  # fastmcp doesn't support mcp 2.x yet
+    "pypdf>=6.15.0",
     "pypdfium2>=4.0",
     "pdfplumber>=0.11",
     "Pillow>=11.0",
     "pillow-heif>=0.20",
     "pydub>=0.25",
     "firecrawl-anydoc>=0.1.0",
-    "fastmcp>=3.4.2",
+    "fastmcp>=3.4.6",
     "reportlab>=4.0",
     "pytesseract>=0.3.10",
     "rembg>=2.0.0",
@@ -30,11 +30,21 @@ dev = [
     "semgrep>=1.80",
     "radon>=6.0",
     "mypy>=1.14",
+    "complexipy>=6.2",
+    "pyrefly>=1.2",
+    "hexora>=0.3",
 ]
 
 [project.scripts]
 media-tools = "media_tools.cli:main"
 media-tools-server = "media_tools.server:main"
+media-tools-server-pdf = "media_tools.server:main_pdf"
+media-tools-server-image = "media_tools.server:main_image"
+media-tools-server-audio = "media_tools.server:main_audio"
+media-tools-server-video = "media_tools.server:main_video"
+media-tools-server-office = "media_tools.server:main_office"
+media-tools-server-ai = "media_tools.server:main_ai"
+media-tools-server-tts = "media_tools.server:main_tts"
 
 [tool.ruff]
 line-length = 120
@@ -56,6 +66,10 @@ python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["pytesseract", "reportlab.*", "moviepy", "moviepy.*", "cv2", "rembg", "anydoc", "pdf2docx", "liteparse", "pydub", "openai"]
+ignore_missing_imports = true
 
 [tool.vulture]
 min_confidence = 80
