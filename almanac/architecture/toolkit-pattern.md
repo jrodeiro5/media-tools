@@ -50,7 +50,7 @@ category of media processing.
 | `VideoToolkit` | `video.py` | 519 | Video manipulation [@video-py] |
 | `ImageToolkit` | `image.py` | 557 | Image manipulation [@image-py] |
 | `OfficeToolkit` | `office.py` | 73 | Office document conversion [@office-py] |
-| `AIToolkit` | `ai.py` | 134 | AI-powered document analysis [@ai-py] |
+| `AIToolkit` | `ai.py` | 136 | AI-powered document analysis [@ai-py] |
 | `TTSToolkit` | `tts.py` | 112 | Text-to-speech [@tts-py] |
 | `AudioToolkit` | `audio.py` | 177 | Audio manipulation [@audio-py] |
 
