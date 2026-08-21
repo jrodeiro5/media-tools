@@ -1,0 +1,21 @@
+openwiki/quickstart.md
+  s_1bb0835fd886c9::t_bca59157e6268b 33
+LICENSE
+  s_1bb0835fd886c9::t_1229d8ec6a2ffd 1-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.23",
+  "base_commit_sha": "75713109631e2d4ab342cb4633ddd545f744d51c",
+  "prompts": {},
+  "sessions": {
+    "s_1bb0835fd886c9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "53e07dc1-6982-4759-b9f7-3ac6a914198c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
