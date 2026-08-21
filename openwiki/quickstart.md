@@ -30,7 +30,7 @@ The project was built to provide a TinyWow/ILovePDF-like experience powered by c
 ### Install
 
 ```bash
-cd /Users/jrodeiro/dev/infra/media-tools
+cd media-tools
 uv venv .venv --python 3.11
 source .venv/bin/activate
 uv pip install -e ".[dev]"
