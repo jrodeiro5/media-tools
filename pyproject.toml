@@ -8,14 +8,14 @@ dependencies = [
     "pypdf>=6.15.0",
     "pypdfium2>=4.0",
     "pdfplumber>=0.11",
-    "Pillow>=11.0",
+    "Pillow>=12.3.0",
     "pillow-heif>=0.20",
     "pydub>=0.25",
     "firecrawl-anydoc>=0.1.0",
     "fastmcp>=3.4.6",
     "reportlab>=4.0",
     "pytesseract>=0.3.10",
-    "rembg>=2.0.0",
+    "rembg>=2.0.75",
     "liteparse>=2.11.1",
     "pdf2docx>=0.5.13",
     "moviepy>=2.2.1",
@@ -75,3 +75,7 @@ ignore_missing_imports = true
 min_confidence = 80
 paths = ["src"]
 exclude = [".venv"]
+
+[tool.uv]
+exclude-newer = "7 days"
+override-dependencies = ["pillow>=12.3.0"]

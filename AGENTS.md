@@ -1,7 +1,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **media-tools** (605 symbols, 1281 relationships, 50 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **media-tools** (608 symbols, 1289 relationships, 51 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 
@@ -56,6 +56,36 @@ See [AGENTS.md](AGENTS.md) for OpenWiki agent instructions.
 
 Atlas maps every repo, service and config dir on this machine. This one's entity
 doc carries its role, stack, services, CI state, last commit, and what is
+currently running out of it.
+
+```bash
+qmd get atlas/repos/media-tools.md    # this repo's entity doc
+qmd query "<topic>"             # search every repo/service/config on this machine
+```
+
+Also here: `almanac/` = why it was built this way (mined decisions,
+pitfalls, incidents). `openwiki/` = how it works right now (generated from
+current code).
+
+Atlas regenerates the entity doc from scans — hand-edits go below its
+`<!-- manual -->` marker only. Source: ~/dev/infra/atlas.
+<!-- atlas:end -->
+ last commit, and what is
+currently running out of it.
+
+```bash
+qmd get atlas/repos/media-tools.md    # this repo's entity doc
+qmd query "<topic>"             # search every repo/service/config on this machine
+```
+
+Also here: `almanac/` = why it was built this way (mined decisions,
+pitfalls, incidents). `openwiki/` = how it works right now (generated from
+current code).
+
+Atlas regenerates the entity doc from scans — hand-edits go below its
+`<!-- manual -->` marker only. Source: ~/dev/infra/atlas.
+<!-- atlas:end -->
+ last commit, and what is
 currently running out of it.
 
 ```bash
