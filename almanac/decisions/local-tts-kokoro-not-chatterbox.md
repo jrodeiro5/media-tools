@@ -37,7 +37,9 @@ so the tool could not have worked as shipped. Nobody noticed, which is
 itself evidence of how little the tool was exercised.
 
 The replacement had to run through the machine's existing local stack:
-LiteLLM proxy on `:4000` in front of omlx on `:8010`. omlx bundles
+LiteLLM proxy on `:4000` in front of omlx on `:8010`. The tool is exposed as the
+`text_to_speech` MCP tool ([MCP server](../architecture/mcp-server)) and
+implemented by `TTSToolkit.convert` ([Toolkit pattern](../architecture/toolkit-pattern)). omlx bundles
 `mlx-audio`, which supports ~25 TTS families, so the choice was open.
 
 The first attempt used Chatterbox. It produced correct English and

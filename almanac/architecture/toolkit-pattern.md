@@ -51,11 +51,13 @@ category of media processing.
 | `ImageToolkit` | `image.py` | 557 | Image manipulation [@image-py] |
 | `OfficeToolkit` | `office.py` | 73 | Office document conversion [@office-py] |
 | `AIToolkit` | `ai.py` | 136 | AI-powered document analysis [@ai-py] |
-| `TTSToolkit` | `tts.py` | 112 | Text-to-speech [@tts-py] |
+| `TTSToolkit` | `tts.py` | 114 | Text-to-speech [@tts-py] |
 | `AudioToolkit` | `audio.py` | 177 | Audio manipulation [@audio-py] |
 
 Each toolkit exports a `name` attribute (e.g. `"pdf"`) used for scoped server
 tagging. The toolkit classes are exported from `tools/__init__.py` [@tools-init].
+Toolkit methods call the shared helpers in [Utilities](../architecture/utilities)
+(`validate_input`, `validate_output_dir`).
 
 ## Method signature convention
 

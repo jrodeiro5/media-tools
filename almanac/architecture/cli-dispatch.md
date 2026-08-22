@@ -15,9 +15,9 @@ sources:
 # CLI dispatch
 
 The CLI is a thin argparse layer that maps `media-tools <category> <command>`
-invocations to `Toolkit` class methods. It exists so agents can invoke tools
-from shell scripts, Makefiles, or other agents without going through the MCP
-server.
+invocations to `Toolkit` class methods (see [Toolkit pattern](../architecture/toolkit-pattern)).
+It exists so agents can invoke tools from shell scripts, Makefiles, or other
+agents without going through the MCP server (see [MCP server](../architecture/mcp-server)).
 
 The CLI is not the source of truth for tool behavior — each `Toolkit` class is.
 The CLI exists only to expose the same methods through `argparse`.
@@ -61,7 +61,7 @@ any agent parse CLI output without understanding per-tool formats.
 
 - The CLI and the MCP server share the same `Toolkit` classes. Adding a tool
   means adding it to the `Toolkit` class and wiring a handler in `cli.py`
-  and/or a `@mcp.tool` decorator in `server.py`.
+  and/or a `@mcp.tool` decorator in `server.py` (see [MCP server](../architecture/mcp-server)).
 - `argparse` is used directly (not `click` or `typer`). This is intentional:
   argparse has no third-party dependencies and works in minimal environments.
 - The CLI does not validate file existence before calling the toolkit — that

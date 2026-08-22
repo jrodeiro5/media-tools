@@ -1,6 +1,6 @@
 ---
 title: CodeAlmanac Wiki
-topics: [concepts]
+topics: [architecture]
 sources: []
 ---
 
@@ -33,6 +33,10 @@ Good pages explain:
 Do not write pages that restate nearby code.
 
 ## Page inventory
+
+### Concepts
+
+- [Toolkit classes](concepts/toolkit-classes) — the shared mental model: the CLI and the MCP server are thin dispatch layers over `<Name>Toolkit` classes; scoped servers filter tools by category tag
 
 ### Architecture
 
