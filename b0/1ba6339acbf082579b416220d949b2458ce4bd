@@ -1,0 +1,32 @@
+almanac/decisions/local-tts-kokoro-not-chatterbox.md
+  s_0620ba5fdf8c44::t_023a0dab8a9245 40-42
+almanac/architecture/toolkit-pattern.md
+  s_0620ba5fdf8c44::t_023a0dab8a9245 54,59-60
+almanac/architecture/mcp-server.md
+  s_0620ba5fdf8c44::t_023a0dab8a9245 24-26
+almanac/concepts/toolkit-classes.md
+  s_0620ba5fdf8c44::t_20ef156ea4056c 32-33,49,51,57
+  s_0620ba5fdf8c44::t_6d5746382247bb 1-31,34-48,50,52-56,58-66
+almanac/README.md
+  s_0620ba5fdf8c44::t_20ef156ea4056c 3
+  s_0620ba5fdf8c44::t_9bddd953964aee 37-39
+  s_0620ba5fdf8c44::t_bdfbcdef91a0e5 40
+almanac/architecture/cli-dispatch.md
+  s_0620ba5fdf8c44::t_023a0dab8a9245 18-20,64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.23",
+  "base_commit_sha": "b01ba6339acbf082579b416220d949b2458ce4bd",
+  "prompts": {},
+  "sessions": {
+    "s_0620ba5fdf8c44": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a028dc-13e5-7d71-b4d9-33462b1a87d5",
+        "model": "gpt-5.4-mini"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
