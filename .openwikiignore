@@ -7,7 +7,6 @@ build/
 vendor/
 .ruff_cache/
 .gitnexus/
-openwiki/
 almanac/
 .git/
 *.lock
