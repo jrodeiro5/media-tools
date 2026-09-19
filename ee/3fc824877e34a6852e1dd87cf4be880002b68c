@@ -1,0 +1,31 @@
+.github/workflows/gitleaks.yml
+  s_09974e19cc2cc8::t_815fd2240ac0f9 1-22
+.github/workflows/ci.yml
+  s_09974e19cc2cc8::t_815fd2240ac0f9 8-14,18-22,25-26,30-31,34,37
+.github/workflows/release-please.yml
+  s_09974e19cc2cc8::t_815fd2240ac0f9 1-19
+.github/workflows/zizmor.yml
+  s_09974e19cc2cc8::t_815fd2240ac0f9 1-24
+.github/workflows/codeql.yml
+  s_09974e19cc2cc8::t_815fd2240ac0f9 1-30
+.github/workflows/dependency-review.yml
+  s_09974e19cc2cc8::t_815fd2240ac0f9 1-19
+.github/workflows/renovate-validate.yml
+  s_09974e19cc2cc8::t_815fd2240ac0f9 1-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ee3fc824877e34a6852e1dd87cf4be880002b68c",
+  "prompts": {},
+  "sessions": {
+    "s_09974e19cc2cc8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "25ed7bc3-7444-42a0-a53a-a625cd8b35f7",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
