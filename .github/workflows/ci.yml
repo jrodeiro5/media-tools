@@ -5,18 +5,34 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: true
 
       - name: Sync dev environment
-        run: uv sync --group dev --python 3.11
+        run: uv sync --group dev --python ${{ matrix.python }}
 
       - name: Run pre-commit
-        # gitleaks needs the binary and staged changes; secrets are covered by GitHub secret scanning
+        # gitleaks has its own workflow (needs the binary and staged changes)
         run: SKIP=gitleaks uvx pre-commit run --all-files
