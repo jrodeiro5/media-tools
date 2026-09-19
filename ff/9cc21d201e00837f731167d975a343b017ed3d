@@ -1,0 +1,41 @@
+openwiki/quickstart.md
+  s_09974e19cc2cc8::t_bc242f30a7324d 104
+  s_b8231d5a7f7f3b::t_caae310505d7e9 4,7,12,23-26,28-31,80-82,84,100,108-109
+.gitignore
+  s_8d132cb0986478::t_a795e9fe8c3303 53-55
+  s_09974e19cc2cc8::t_bc242f30a7324d 56-58
+scripts/convert_pdf.py
+  s_09974e19cc2cc8::t_d2f059638e9e62 62,86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ff9cc21d201e00837f731167d975a343b017ed3d",
+  "prompts": {},
+  "sessions": {
+    "s_09974e19cc2cc8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "25ed7bc3-7444-42a0-a53a-a625cd8b35f7",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_8d132cb0986478": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a07d49-1c1d-7032-8ec8-40977ce088a2",
+        "model": "gpt-5.4-mini"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_b8231d5a7f7f3b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0385a-48fd-7d92-b161-f97126796a33",
+        "model": "gpt-5.4-mini"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
