@@ -1,0 +1,81 @@
+[project]
+name = "media-tools"
+version = "0.1.0"
+description = "MCP server with multimedia processing tools (PDF, video, image, audio, office docs)"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp>=1.29.0,<2",  # fastmcp doesn't support mcp 2.x yet
+    "pypdf>=6.15.0",
+    "pypdfium2>=4.0",
+    "pdfplumber>=0.11",
+    "Pillow>=12.3.0",
+    "pillow-heif>=0.20",
+    "pydub>=0.25",
+    "firecrawl-anydoc>=0.1.0",
+    "fastmcp>=3.4.6",
+    "reportlab>=4.0",
+    "pytesseract>=0.3.10",
+    "rembg>=2.0.75",
+    "liteparse>=2.11.1",
+    "pdf2docx>=0.5.13",
+    "moviepy>=2.2.1",
+    "opencv-python-headless>=5.0.0.93",
+]
+
+[dependency-groups]
+dev = [
+    "bandit>=1.9.4",
+    "ruff>=0.11",
+    "vulture>=2.11",
+    "semgrep>=1.80",
+    "radon>=6.0",
+    "mypy>=1.14",
+    "complexipy>=6.2",
+    "pyrefly>=1.2",
+    "hexora>=0.3",
+]
+
+[project.scripts]
+media-tools = "media_tools.cli:main"
+media-tools-server = "media_tools.server:main"
+media-tools-server-pdf = "media_tools.server:main_pdf"
+media-tools-server-image = "media_tools.server:main_image"
+media-tools-server-audio = "media_tools.server:main_audio"
+media-tools-server-video = "media_tools.server:main_video"
+media-tools-server-office = "media_tools.server:main_office"
+media-tools-server-ai = "media_tools.server:main_ai"
+media-tools-server-tts = "media_tools.server:main_tts"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["B008"]  # function call in arg defaults is fine for FastMCP
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.bandit]
+skip = ["B104", "B602", "B603"]
+exclude_dirs = [".venv"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["pytesseract", "reportlab.*", "moviepy", "moviepy.*", "cv2", "rembg", "anydoc", "pdf2docx", "liteparse", "pydub", "openai"]
+ignore_missing_imports = true
+
+[tool.vulture]
+min_confidence = 80
+paths = ["src"]
+exclude = [".venv"]
+
+[tool.uv]
+exclude-newer = "7 days"
+override-dependencies = ["pillow>=12.3.0"]

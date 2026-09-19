@@ -1,0 +1,500 @@
+"""MCP server exposing 50+ multimedia processing tools."""
+
+from __future__ import annotations
+
+import os
+
+from fastmcp import FastMCP
+
+from media_tools.tools import (
+    AudioToolkit,
+    ImageToolkit,
+    OfficeToolkit,
+    PDFToolkit,
+    VideoToolkit,
+)
+from media_tools.utils import setup_logging
+
+setup_logging(os.environ.get("LOG_LEVEL", "INFO"))
+
+mcp = FastMCP(
+    "Media Tools",
+    instructions=(
+        "Multimedia processing MCP server: "
+        "PDF merge/split/compress/convert, video conversion, "
+        "image manipulation, audio processing, "
+        "Office-to-Markdown, AI-powered document analysis."
+    ),
+)
+
+
+@mcp.tool(name="pdf_merge", tags={"pdf"})
+def pdf_merge(files: list[str], output: str) -> str:
+    """Merge multiple PDF files into a single output file."""
+    return PDFToolkit.merge(files, output)
+
+
+@mcp.tool(name="pdf_split", tags={"pdf"})
+def pdf_split(input_path: str, pages: str, output_dir: str) -> str:
+    """Split a PDF. pages: page ranges like '1-3,5,7-9' (1-indexed)."""
+    return PDFToolkit.split(input_path, pages, output_dir)
+
+
+@mcp.tool(name="pdf_compress", tags={"pdf"})
+def pdf_compress(input_path: str, output: str, quality: int = 50) -> str:
+    """Compress a PDF to reduce file size."""
+    return PDFToolkit.compress(input_path, output, quality)
+
+
+@mcp.tool(name="pdf_extract_text", tags={"pdf"})
+def pdf_extract_text(input_path: str, output: str | None = None) -> str:
+    """Extract text content from a PDF. Saves to output path if provided."""
+    return PDFToolkit.extract_text(input_path, output)
+
+
+@mcp.tool(name="pdf_extract_images", tags={"pdf"})
+def pdf_extract_images(input_path: str, output_dir: str, dpi: int = 150) -> str:
+    """Render PDF pages as PNG images."""
+    return PDFToolkit.extract_images(input_path, output_dir, dpi)
+
+
+@mcp.tool(name="pdf_rotate", tags={"pdf"})
+def pdf_rotate(input_path: str, output: str, angle: int = 90) -> str:
+    """Rotate all pages in a PDF by a given angle in degrees."""
+    return PDFToolkit.rotate(input_path, output, angle)
+
+
+@mcp.tool(name="pdf_info", tags={"pdf"})
+def pdf_info(input_path: str) -> str:
+    """Get PDF metadata: page count, title, author, encryption status."""
+    return PDFToolkit.info(input_path)
+
+
+@mcp.tool(name="pdf_extract_structured", tags={"pdf"})
+def pdf_extract_structured(
+    input_path: str,
+    output: str | None = None,
+    ocr: bool = False,
+    language: str = "eng",
+    dpi: int = 150,
+) -> str:
+    """Extract structured text with bounding boxes using LiteParse.
+
+    Outputs JSON with text_items (x, y, width, height, font, confidence).
+    Requires: pip install liteparse
+    """
+    return PDFToolkit.extract_structured(input_path, output, ocr, language, dpi)
+
+
+@mcp.tool(name="pdf_extract_screenshots", tags={"pdf"})
+def pdf_extract_screenshots(
+    input_path: str,
+    output_dir: str,
+    dpi: int = 150,
+    page_numbers: list[int] | None = None,
+) -> str:
+    """Render PDF pages as PNG screenshots using LiteParse."""
+    return PDFToolkit.extract_screenshots(input_path, output_dir, dpi, page_numbers)
+
+
+@mcp.tool(name="pdf_watermark", tags={"pdf"})
+def pdf_watermark(
+    input_path: str,
+    output: str,
+    text: str | None = None,
+    image_path: str | None = None,
+    opacity: float = 0.3,
+    angle: int = 45,
+) -> str:
+    """Add a text or image watermark to all pages of a PDF."""
+    return PDFToolkit.watermark(input_path, output, text, image_path, opacity, angle)
+
+
+@mcp.tool(name="pdf_page_numbers", tags={"pdf"})
+def pdf_page_numbers(
+    input_path: str,
+    output: str,
+    position: str = "bottom-center",
+    format_str: str = "Page {page}",
+) -> str:
+    """Add page numbers to all pages of a PDF."""
+    return PDFToolkit.add_page_numbers(input_path, output, position, format_str)
+
+
+@mcp.tool(name="pdf_protect", tags={"pdf"})
+def pdf_protect(
+    input_path: str,
+    output: str,
+    password: str,
+) -> str:
+    """Add password protection to a PDF."""
+    return PDFToolkit.protect(input_path, output, password)
+
+
+@mcp.tool(name="pdf_unlock", tags={"pdf"})
+def pdf_unlock(input_path: str, output: str, password: str) -> str:
+    """Remove password protection from a PDF."""
+    return PDFToolkit.unlock(input_path, output, password)
+
+
+@mcp.tool(name="images_to_pdf", tags={"pdf"})
+def images_to_pdf(input_paths: list[str], output: str, quality: int = 85) -> str:
+    """Convert one or more images to a single PDF."""
+    return PDFToolkit.images_to_pdf(input_paths, output, quality=quality)
+
+
+@mcp.tool(name="pdf_reorder_pages", tags={"pdf"})
+def pdf_reorder_pages(input_path: str, output: str, pages: list[int]) -> str:
+    """Reorder PDF pages. pages: list of 1-indexed page numbers in desired order."""
+    return PDFToolkit.reorder_pages(input_path, output, pages)
+
+
+@mcp.tool(name="pdf_delete_pages", tags={"pdf"})
+def pdf_delete_pages(input_path: str, output: str, pages: list[int]) -> str:
+    """Delete specific pages from a PDF. pages: list of 1-indexed page numbers to remove."""
+    return PDFToolkit.delete_pages(input_path, output, pages)
+
+
+@mcp.tool(name="pdf_sign", tags={"pdf"})
+def pdf_sign(
+    input_path: str,
+    output: str,
+    signature_image: str,
+    page: int = 1,
+    x: float = 50,
+    y: float = 50,
+    width: float = 150,
+    height: float = 50,
+) -> str:
+    """Add a signature image to a specific page of a PDF."""
+    return PDFToolkit.sign(input_path, output, signature_image, page, x, y, width, height)
+
+
+@mcp.tool(name="pdf_fill_form", tags={"pdf"})
+def pdf_fill_form(input_path: str, output: str, fields: dict[str, str]) -> str:
+    """Fill PDF form fields. fields: dict mapping field names to values."""
+    return PDFToolkit.fill_form(input_path, output, fields)
+
+
+@mcp.tool(name="pdf_compare", tags={"pdf"})
+def pdf_compare(input_path: str, other_path: str) -> str:
+    """Compare two PDFs and report page count and text differences."""
+    return PDFToolkit.compare(input_path, other_path)
+
+
+@mcp.tool(name="pdf_to_a", tags={"pdf"})
+def pdf_to_a(input_path: str, output: str, pdf_a_version: str = "1b") -> str:
+    """Convert PDF to PDF/A archival format (requires Ghostscript)."""
+    return PDFToolkit.pdf_to_a(input_path, output, pdf_a_version)
+
+
+@mcp.tool(name="pdf_to_markdown", tags={"pdf"})
+def pdf_to_markdown(
+    input_path: str,
+    output: str | None = None,
+    pages: list[int] | None = None,
+) -> str:
+    """Convert a PDF (or DOCX, HTML, XLSX) to Markdown via Firecrawl CLI.
+
+    Local files only. Supports .pdf, .docx, .html, .xlsx, .odt, .rtf.
+    Requires: npx firecrawl installed + FIRECRAWL_API_KEY env var.
+    Free tier: 500 requests/month.
+    """
+    return PDFToolkit.pdf_to_markdown(input_path, output, pages)
+
+
+@mcp.tool(name="video_convert", tags={"video"})
+def video_convert(input_path: str, output: str) -> str:
+    """Convert a video between formats. Uses the file extension to determine output codec."""
+    return VideoToolkit.convert(input_path, output)
+
+
+@mcp.tool(name="video_trim", tags={"video"})
+def video_trim(
+    input_path: str, output: str, start: str = "00:00:00", duration: str | None = None, end: str | None = None
+) -> str:
+    """Trim a video. Times in HH:MM:SS. Use duration OR end (not both)."""
+    return VideoToolkit.trim(input_path, output, start, duration, end)
+
+
+@mcp.tool(name="video_compress", tags={"video"})
+def video_compress(input_path: str, output: str, crf: int = 28) -> str:
+    """Compress a video. CRF: 18 is near-lossless, 23-28 is good quality, 51 is worst."""
+    return VideoToolkit.compress(input_path, output, crf)
+
+
+@mcp.tool(name="video_to_gif", tags={"video"})
+def video_to_gif(
+    input_path: str,
+    output: str,
+    width: int = 480,
+    fps: int = 10,
+    start: str = "00:00:00",
+    duration: str = "5",
+) -> str:
+    """Convert a video segment into an animated GIF."""
+    return VideoToolkit.to_gif(input_path, output, width, fps, start, duration)
+
+
+@mcp.tool(name="video_probe", tags={"video"})
+def video_probe(input_path: str) -> str:
+    """Get detailed video metadata: codec, resolution, duration, bitrate."""
+    return VideoToolkit.probe(input_path)
+
+
+@mcp.tool(name="video_extract_audio", tags={"video"})
+def video_extract_audio(input_path: str, output: str, format: str = "mp3", bitrate: str = "192k") -> str:
+    """Extract the audio track from a video. Format: mp3, aac, wav, ogg, or flac."""
+    return VideoToolkit.extract_audio(input_path, output, format, bitrate)
+
+
+@mcp.tool(name="image_convert", tags={"image"})
+def image_convert(input_path: str, output: str, quality: int = 85) -> str:
+    """Convert an image to another format (extension determines format)."""
+    return ImageToolkit.convert(input_path, output, quality)
+
+
+@mcp.tool(name="image_resize", tags={"image"})
+def image_resize(
+    input_path: str,
+    output: str,
+    width: int | None = None,
+    height: int | None = None,
+    percent: int | None = None,
+) -> str:
+    """Resize an image by pixels (width/height) or by percentage."""
+    return ImageToolkit.resize(input_path, output, width, height, percent)
+
+
+@mcp.tool(name="image_compress", tags={"image"})
+def image_compress(input_path: str, output: str, quality: int = 70) -> str:
+    """Compress an image. Quality: 1 (smallest) to 100 (highest)."""
+    return ImageToolkit.compress(input_path, output, quality)
+
+
+@mcp.tool(name="image_crop", tags={"image"})
+def image_crop(input_path: str, output: str, left: int, top: int, right: int, bottom: int) -> str:
+    """Crop an image by pixel coordinates (left, top, right, bottom)."""
+    return ImageToolkit.crop(input_path, output, left, top, right, bottom)
+
+
+@mcp.tool(name="image_info", tags={"image"})
+def image_info(input_path: str) -> str:
+    """Get image metadata: format, dimensions, mode, file size."""
+    return ImageToolkit.info(input_path)
+
+
+@mcp.tool(name="image_remove_background", tags={"image"})
+def image_remove_background(input_path: str, output: str, alpha_matting: bool = False) -> str:
+    """Remove background from an image using AI (U2-Net model)."""
+    return ImageToolkit.remove_background(input_path, output, alpha_matting)
+
+
+@mcp.tool(name="audio_convert", tags={"audio"})
+def audio_convert(input_path: str, output: str, bitrate: str = "192k") -> str:
+    """Convert audio between formats (extension determines format)."""
+    return AudioToolkit.convert(input_path, output, bitrate)
+
+
+@mcp.tool(name="audio_trim", tags={"audio"})
+def audio_trim(input_path: str, output: str, start_ms: int = 0, end_ms: int = 0) -> str:
+    """Trim audio by milliseconds. If end_ms=0, trims from start to end."""
+    return AudioToolkit.trim(input_path, output, start_ms, end_ms)
+
+
+@mcp.tool(name="audio_fade", tags={"audio"})
+def audio_fade(input_path: str, output: str, fade_in_ms: int = 1000, fade_out_ms: int = 2000) -> str:
+    """Add fade-in and fade-out effects to an audio file."""
+    return AudioToolkit.fade(input_path, output, fade_in_ms, fade_out_ms)
+
+
+@mcp.tool(name="audio_speed", tags={"audio"})
+def audio_speed(input_path: str, output: str, factor: float = 1.5) -> str:
+    """Change audio playback speed. 2.0 = double, 0.5 = half speed."""
+    return AudioToolkit.speed(input_path, output, factor)
+
+
+@mcp.tool(name="audio_info", tags={"audio"})
+def audio_info(input_path: str) -> str:
+    """Get audio metadata: duration, channels, sample rate, file size."""
+    return AudioToolkit.info(input_path)
+
+
+@mcp.tool(name="office_to_markdown", tags={"office"})
+def office_to_markdown(input_path: str, output: str | None = None) -> str:
+    """Convert Office files (.docx, .pptx, .xlsx) to Markdown."""
+    return OfficeToolkit.to_markdown(input_path, output)
+
+
+@mcp.tool(name="office_to_pdf", tags={"office"})
+def office_to_pdf(input_path: str, output: str) -> str:
+    """Convert Office documents to PDF using LibreOffice."""
+    return OfficeToolkit.to_pdf(input_path, output)
+
+
+# === PDF to DOCX ===
+
+
+@mcp.tool(name="pdf_to_docx", tags={"pdf"})
+def pdf_to_docx(input_path: str, output: str) -> str:
+    """Convert PDF to DOCX using pdf2docx."""
+    from media_tools.tools.pdf import PDFToolkit
+
+    return PDFToolkit.to_docx(input_path, output)
+
+
+# === Video/Image/Audio Extensions ===
+
+
+@mcp.tool(name="image_to_video", tags={"image"})
+def image_to_video(
+    input_paths: list[str],
+    output: str,
+    fps: int = 30,
+    duration_per_image: int = 5,
+) -> str:
+    """Create a video slideshow from images using MoviePy."""
+    from media_tools.tools.video import VideoToolkit
+
+    return VideoToolkit.slideshow(input_paths, output, fps, duration_per_image)
+
+
+@mcp.tool(name="video_extract_frames", tags={"video"})
+def video_extract_frames(
+    input_path: str,
+    output_dir: str,
+    fps: int = 1,
+    start: str = "00:00:00",
+    duration: str | None = None,
+) -> str:
+    """Extract frames from video as images using OpenCV."""
+    from media_tools.tools.video import VideoToolkit
+
+    return VideoToolkit.extract_frames(input_path, output_dir, fps, start, duration)
+
+
+@mcp.tool(name="audio_to_video", tags={"audio"})
+def audio_to_video(input_path: str, video_path: str, output: str) -> str:
+    """Create a video with audio track using MoviePy."""
+    from media_tools.tools.video import VideoToolkit
+
+    return VideoToolkit.audio_to_video(input_path, video_path, output)
+
+
+# === PDF Redaction ===
+
+
+@mcp.tool(name="pdf_redact", tags={"pdf"})
+def pdf_redact(
+    input_path: str,
+    output: str,
+    text_patterns: list[str] | None = None,
+    rect_areas: list[dict] | None = None,
+) -> str:
+    """Redact (black out) sensitive information from PDF.
+
+    text_patterns: list of text strings to redact
+    rect_areas: list of {x, y, width, height} to redact
+    """
+    from media_tools.tools.pdf import PDFToolkit
+
+    return PDFToolkit.redact(input_path, output, text_patterns, rect_areas)
+
+
+# === AI-Powered Document Tools ===
+
+
+@mcp.tool(name="document_summarize", tags={"ai"})
+def document_summarize(input_path: str, output: str | None = None) -> str:
+    """Summarize a document using LLM (Gemma 4 e2e via LiteLLM)."""
+    from media_tools.tools.ai import AIToolkit
+
+    return AIToolkit.summarize(input_path, output)
+
+
+@mcp.tool(name="document_qa", tags={"ai"})
+def document_qa(input_path: str, question: str, output: str | None = None) -> str:
+    """Answer questions about a document using LLM (Gemma 4 e2e via LiteLLM)."""
+    from media_tools.tools.ai import AIToolkit
+
+    return AIToolkit.qa(input_path, question, output)
+
+
+@mcp.tool(name="document_translate", tags={"ai"})
+def document_translate(input_path: str, output: str, target_language: str = "en") -> str:
+    """Translate document content using LLM (Gemma 4 e2e via LiteLLM)."""
+    from media_tools.tools.ai import AIToolkit
+
+    return AIToolkit.translate(input_path, output, target_language)
+
+
+# === Text-to-Speech ===
+
+
+@mcp.tool(name="text_to_speech", tags={"tts"})
+def text_to_speech(
+    text: str,
+    output: str,
+    voice: str = "",
+    audio_format: str = "wav",
+    language: str = "en",
+) -> str:
+    """Convert text to speech locally via the LiteLLM proxy (omlx / Kokoro).
+
+    No API key and no network egress. Override the endpoint with LITELLM_URL
+    and the model with TTS_MODEL. `language` picks a default voice; pass
+    `voice` to override with a specific Kokoro id (af_heart, ef_dora,
+    em_alex, …). Reliable in en/es; other languages have thinner voice data.
+    """
+    from media_tools.tools.tts import TTSToolkit
+
+    return TTSToolkit.convert(
+        text=text,
+        output=output,
+        voice=voice,
+        audio_format=audio_format,
+        language=language,
+    )
+
+
+def main():
+    port = int(os.environ.get("PORT", "8020"))
+    mcp.run(transport="streamable-http", port=port)
+
+
+def _run_scoped(tag: str):
+    mcp.enable(tags={tag}, only=True)
+    port = int(os.environ.get("PORT", "8020"))
+    mcp.run(transport="streamable-http", port=port)
+
+
+def main_pdf():
+    _run_scoped("pdf")
+
+
+def main_image():
+    _run_scoped("image")
+
+
+def main_audio():
+    _run_scoped("audio")
+
+
+def main_video():
+    _run_scoped("video")
+
+
+def main_office():
+    _run_scoped("office")
+
+
+def main_ai():
+    _run_scoped("ai")
+
+
+def main_tts():
+    _run_scoped("tts")
+
+
+if __name__ == "__main__":
+    main()
