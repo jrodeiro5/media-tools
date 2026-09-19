@@ -67,4 +67,4 @@ pre-commit run --all-files
 
 ## License
 
-Private — all rights reserved.
+[MIT](LICENSE)
