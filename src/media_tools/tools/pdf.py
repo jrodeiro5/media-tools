@@ -108,8 +108,7 @@ class PDFToolkit:
             reader = pypdf.PdfReader(input_path)
 
             for page in reader.pages:
-                page.compress_content_streams()
-                writer.add_page(page)
+                writer.add_page(page).compress_content_streams()
 
             writer.write(output)
             writer.close()
