@@ -1,0 +1,19 @@
+README.md
+  s_09974e19cc2cc8::t_d6f04a7cdd5898 3-6,8-13,15-20,22-28,31,33,36,38-43,46,48,50-63,65,67,69,71,73,75,77,79,81-91,95-97,102-103,106,108,110
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e6314c7cb90926fdf768cef95b885b9554204f39",
+  "prompts": {},
+  "sessions": {
+    "s_09974e19cc2cc8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "25ed7bc3-7444-42a0-a53a-a625cd8b35f7",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
