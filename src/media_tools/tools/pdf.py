@@ -6,6 +6,7 @@ import io
 import os
 import subprocess
 from pathlib import Path
+from typing import Any, cast
 
 import pdfplumber
 import pypdf
@@ -65,9 +66,9 @@ class PDFToolkit:
             ranges = []
             for part in pages.split(","):
                 if "-" in part:
-                    start, end = part.split("-")
-                    start = int(start) - 1 if start else 0
-                    end = int(end) if end else total
+                    lo, hi = part.split("-")
+                    start = int(lo) - 1 if lo else 0
+                    end = int(hi) if hi else total
                 else:
                     start = int(part) - 1
                     end = int(part)
@@ -271,7 +272,7 @@ class PDFToolkit:
 
         try:
             reader = pypdf.PdfReader(input_path)
-            info = reader.metadata or {}
+            info: Any = reader.metadata or {}
             return (
                 f"Pages: {len(reader.pages)}\n"
                 f"Title: {info.get('/Title', 'N/A')}\n"
@@ -594,7 +595,7 @@ class PDFToolkit:
 
             packets = []
             for img_path in input_paths:
-                img = PILImage.open(img_path)
+                img: PILImage.Image = PILImage.open(img_path)
                 if img.mode in ("RGBA", "P"):
                     img = img.convert("RGB")
 
@@ -771,7 +772,7 @@ class PDFToolkit:
             # Fill fields
             fields_obj = reader.get_fields()
             if fields_obj:
-                writer.update_page_form_field_values(writer.pages[0], fields, append=True)
+                writer.update_page_form_field_values(writer.pages[0], fields)
 
             writer.write(output)
             writer.close()
@@ -1004,11 +1005,11 @@ class PDFToolkit:
             reader = pypdf.PdfReader(input_path)
             writer = pypdf.PdfWriter()
 
-            for page_no, page in enumerate(reader.pages):
-                page_copy = page.clone(writer)
+            for page_no, src_page in enumerate(reader.pages):
+                page_copy = cast(pypdf.PageObject, src_page.clone(writer))
                 rects = page_rects.get(page_no, [])
                 if rects:
-                    page_w, page_h = float(page.mediabox.width), float(page.mediabox.height)
+                    page_w, page_h = float(src_page.mediabox.width), float(src_page.mediabox.height)
                     buf = io.BytesIO()
                     c = pdf_canvas.Canvas(buf, pagesize=(page_w, page_h))
                     c.setFillColor("black")

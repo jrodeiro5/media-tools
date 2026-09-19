@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from PIL import Image, ImageFilter
 
@@ -44,10 +45,10 @@ class ImageToolkit:
             return f"Error: {msg}"
 
         try:
-            img = Image.open(input_path)
+            img: Image.Image = Image.open(input_path)
             if img.mode in ("RGBA", "P") and ext in ("jpg", "jpeg"):
                 img = img.convert("RGB")
-            save_kwargs = {"quality": quality} if ext in ("jpg", "jpeg", "webp") else {}
+            save_kwargs: dict[str, Any] = {"quality": quality} if ext in ("jpg", "jpeg", "webp") else {}
             img.save(output, **save_kwargs)
         except Exception as exc:
             logger.error("convert failed: %s", exc)
@@ -75,7 +76,7 @@ class ImageToolkit:
             return "Error: specify width, height, or percent"
 
         try:
-            img = Image.open(input_path)
+            img: Image.Image = Image.open(input_path)
             if percent:
                 width = int(img.width * percent / 100)
                 height = int(img.height * percent / 100)
@@ -88,7 +89,7 @@ class ImageToolkit:
                 ratio = height / img.height
                 width = int(img.width * ratio)
 
-            img = img.resize((width, height), Image.LANCZOS)
+            img = img.resize((int(width or 0), int(height or 0)), Image.Resampling.LANCZOS)
             img.save(output)
             logger.info("Resized %dx%d → %s", img.width, img.height, output)
         except Exception as exc:
@@ -108,7 +109,7 @@ class ImageToolkit:
             return err
 
         try:
-            img = Image.open(input_path)
+            img: Image.Image = Image.open(input_path)
             ext = Path(output).suffix.lower().lstrip(".")
             if ext in ("jpg", "jpeg"):
                 if img.mode in ("RGBA", "P"):
@@ -138,7 +139,7 @@ class ImageToolkit:
             return err
 
         try:
-            img = Image.open(input_path)
+            img: Image.Image = Image.open(input_path)
             # Validate crop bounds
             if left < 0 or top < 0 or right < 0 or bottom < 0:
                 return "crop coordinates cannot be negative"
@@ -173,7 +174,7 @@ class ImageToolkit:
             return "Error: angle must be 90, 180, or 270"
 
         try:
-            img = Image.open(input_path)
+            img: Image.Image = Image.open(input_path)
             img = img.rotate(angle, expand=True)
             img.save(output)
             logger.info("Rotated %d° → %s", angle, output)
@@ -196,11 +197,11 @@ class ImageToolkit:
             return "Error: direction must be 'horizontal' or 'vertical'"
 
         try:
-            img = Image.open(input_path)
+            img: Image.Image = Image.open(input_path)
             if direction == "horizontal":
-                img = img.transpose(Image.FLIP_LEFT_RIGHT)
+                img = img.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
             else:
-                img = img.transpose(Image.FLIP_TOP_BOTTOM)
+                img = img.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
             img.save(output)
             logger.info("Flipped %s → %s", direction, output)
         except Exception as exc:
@@ -232,13 +233,15 @@ class ImageToolkit:
         try:
             from PIL import ImageDraw, ImageFont
 
-            img = Image.open(input_path).convert("RGBA")
+            img: Image.Image = Image.open(input_path).convert("RGBA")
             txt_layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
             draw = ImageDraw.Draw(txt_layer)
 
             # Try to load a font, fall back to default
             try:
-                font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
+                font: ImageFont.FreeTypeFont | ImageFont.ImageFont = ImageFont.truetype(
+                    "/System/Library/Fonts/Helvetica.ttc", font_size
+                )
             except OSError:
                 try:
                     font = ImageFont.truetype("/Library/Fonts/Arial.ttf", font_size)
@@ -253,14 +256,14 @@ class ImageToolkit:
             # Position
             w, h = img.size
             if "left" in position:
-                x = margin
+                x: float = margin
             elif "right" in position:
                 x = w - text_w - margin
             else:
                 x = (w - text_w) // 2
 
             if "top" in position:
-                y = margin
+                y: float = margin
             elif "bottom" in position:
                 y = h - text_h - margin
             else:
@@ -302,7 +305,7 @@ class ImageToolkit:
             return err
 
         try:
-            img = Image.open(input_path)
+            img: Image.Image = Image.open(input_path)
             new_w = img.width + 2 * width
             new_h = img.height + 2 * width
 
@@ -337,7 +340,7 @@ class ImageToolkit:
             return "Error: direction must be 'horizontal' or 'vertical'"
 
         try:
-            images = [Image.open(f) for f in input_paths]
+            images: list[Image.Image] = [Image.open(f) for f in input_paths]
             # Convert to same mode
             mode = images[0].mode
             images = [img.convert(mode) for img in images]
@@ -446,7 +449,7 @@ class ImageToolkit:
             canvas = Image.new("RGB", (grid_w, grid_h), background)
 
             for idx, path in enumerate(input_paths):
-                img = Image.open(path).convert("RGB")
+                img: Image.Image = Image.open(path).convert("RGB")
                 img.thumbnail((cell_size, cell_size))
                 col, row = idx % columns, idx // columns
                 cell_x = spacing + col * (cell_size + spacing)
@@ -474,7 +477,7 @@ class ImageToolkit:
             return err
 
         try:
-            img = Image.open(input_path)
+            img: Image.Image = Image.open(input_path)
             img = img.filter(ImageFilter.GaussianBlur(radius=radius))
             img.save(output)
             logger.info("Blur radius=%.1f → %s", radius, output)
@@ -494,7 +497,7 @@ class ImageToolkit:
         try:
             import pytesseract
 
-            img = Image.open(input_path)
+            img: Image.Image = Image.open(input_path)
             text = pytesseract.image_to_string(img)
             text = text.strip()
             logger.info("OCR → %d chars", len(text))
@@ -513,7 +516,7 @@ class ImageToolkit:
             return err
 
         try:
-            img = Image.open(input_path)
+            img: Image.Image = Image.open(input_path)
             size_mb = Path(input_path).stat().st_size / (1024 * 1024)
             return (
                 f"Format: {img.format}\nMode: {img.mode}\nSize: {img.width}x{img.height}\nFile size: {size_mb:.2f} MB"
@@ -539,7 +542,7 @@ class ImageToolkit:
         try:
             from rembg import remove
 
-            img = Image.open(input_path)
+            img: Image.Image = Image.open(input_path)
             result = remove(img, alpha_matting=alpha_matting)
 
             ext = Path(output).suffix.lower().lstrip(".")

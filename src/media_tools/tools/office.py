@@ -56,8 +56,12 @@ class OfficeToolkit:
             return err
 
         cmd = [
-            "soffice", "--headless", "--convert-to", "pdf",
-            "--outdir", str(Path(output).parent),
+            "soffice",
+            "--headless",
+            "--convert-to",
+            "pdf",
+            "--outdir",
+            str(Path(output).parent),
             input_path,
         ]
         desc, ok = _subprocess_with_logging(cmd, f"Converted to PDF → {output}")

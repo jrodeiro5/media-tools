@@ -510,7 +510,7 @@ def _rframe(rate: str) -> str:
         return rate
 
 
-def _human_size(size: int) -> str:
+def _human_size(size: float) -> str:
     """Format bytes to human-readable string."""
     for unit in ("B", "KB", "MB", "GB", "TB"):
         if size < 1024:

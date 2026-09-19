@@ -13,10 +13,12 @@ logger = logging.getLogger("media_tools")
 def setup_logging(level: str = "INFO") -> None:
     """Configure root logger for the media-tools package."""
     handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter(
-        "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        datefmt="%H:%M:%S",
-    ))
+    handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+            datefmt="%H:%M:%S",
+        )
+    )
     logger.setLevel(getattr(logging, level.upper(), logging.INFO))
     logger.addHandler(handler)
 
@@ -87,8 +89,12 @@ def _subprocess_with_logging(cmd: list[str], description: str) -> tuple[str, boo
 
 
 def _validate_crop_bounds(
-    img_width: int, img_height: int,
-    left: int, top: int, right: int, bottom: int,
+    img_width: int,
+    img_height: int,
+    left: int,
+    top: int,
+    right: int,
+    bottom: int,
 ) -> str | None:
     """Validate crop coordinates against image dimensions."""
     if left < 0 or top < 0 or right < 0 or bottom < 0:
@@ -102,6 +108,3 @@ def _validate_crop_bounds(
     if bottom > img_height:
         return f"bottom ({bottom}) exceeds image height ({img_height})"
     return None
-
-
-
