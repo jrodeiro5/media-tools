@@ -1,0 +1,52 @@
+openwiki/operations/deployment.md
+  s_b8231d5a7f7f3b::t_caae310505d7e9 15,18-21,35-49
+  s_09974e19cc2cc8::t_748d4e37fe7a3b 7,50
+openwiki/index.md
+  s_b8231d5a7f7f3b::t_caae310505d7e9 2-3,8
+openwiki/tools/image.md
+  s_b8231d5a7f7f3b::t_caae310505d7e9 4,7,12,22-38,45,50,59
+openwiki/tools/audio.md
+  s_b8231d5a7f7f3b::t_caae310505d7e9 4,6-7,12,16-24,31,39
+openwiki/tools/pdf.md
+  s_b8231d5a7f7f3b::t_caae310505d7e9 4,6-7,12,37,51,58-59,66,69,72-73,75,83
+openwiki/tools/index.md
+  s_b8231d5a7f7f3b::t_caae310505d7e9 6-8,10-12
+  s_09974e19cc2cc8::t_3901d69018c219 2
+openwiki/operations/index.md
+  s_09974e19cc2cc8::t_0d372f4d5275f3 2
+openwiki/architecture/index.md
+  s_b8231d5a7f7f3b::t_caae310505d7e9 6
+  s_09974e19cc2cc8::t_940a2d83ff3e0f 2
+openwiki/.last-update.json
+  s_b8231d5a7f7f3b::t_caae310505d7e9 2-7
+openwiki/tools/video.md
+  s_b8231d5a7f7f3b::t_caae310505d7e9 4,6-7,12,16-34,42-43,52
+openwiki/architecture/overview.md
+  s_b8231d5a7f7f3b::t_caae310505d7e9 4,6-7,14-15,18-19,22-29,34,38-46,50,55,65-89,92,95-107,111,117-127,129,148-149,158-159,161,168,170-171,173-174
+openwiki/tools/office.md
+  s_09974e19cc2cc8::t_0d372f4d5275f3 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2e2ee65daed8c7139d759a748b0853361ebb5e0c",
+  "prompts": {},
+  "sessions": {
+    "s_09974e19cc2cc8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "25ed7bc3-7444-42a0-a53a-a625cd8b35f7",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_b8231d5a7f7f3b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0385a-48fd-7d92-b161-f97126796a33",
+        "model": "gpt-5.4-mini"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
