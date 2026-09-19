@@ -6,7 +6,7 @@ import io
 import os
 import subprocess
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 import pdfplumber
 import pypdf
@@ -971,6 +971,11 @@ class PDFToolkit:
     ) -> str:
         """Redact (black out) sensitive information from PDF.
 
+        Pages with redactions are rasterized (144 dpi) and rewritten as image-only
+        pages, so the redacted text is truly removed, but those pages lose all
+        selectable text. Pages without redactions are left untouched.
+        Rotated pages are not supported: rects are placed as if the page were unrotated.
+
         text_patterns: list of text strings to redact
         rect_areas: list of {x, y, width, height} to redact
         """
@@ -983,7 +988,7 @@ class PDFToolkit:
 
         try:
             import pypdf
-            from reportlab.pdfgen import canvas as pdf_canvas
+            from PIL import ImageDraw
 
             # Collect per-page rectangles (top-left origin, points) to black out.
             page_rects: dict[int, list[tuple[float, float, float, float]]] = {}
@@ -1005,22 +1010,24 @@ class PDFToolkit:
             reader = pypdf.PdfReader(input_path)
             writer = pypdf.PdfWriter()
 
+            doc = pdfium.PdfDocument(input_path)
             for page_no, src_page in enumerate(reader.pages):
-                page_copy = cast(pypdf.PageObject, src_page.clone(writer))
                 rects = page_rects.get(page_no, [])
-                if rects:
-                    page_w, page_h = float(src_page.mediabox.width), float(src_page.mediabox.height)
-                    buf = io.BytesIO()
-                    c = pdf_canvas.Canvas(buf, pagesize=(page_w, page_h))
-                    c.setFillColor("black")
-                    for x, y, w, h in rects:
-                        # y is measured from the top; convert to PDF's bottom-left origin.
-                        c.rect(x, page_h - y - h, w, h, fill=True, stroke=False)
-                    c.save()
-                    buf.seek(0)
-                    overlay = pypdf.PdfReader(buf)
-                    page_copy.merge_page(overlay.pages[0])
-                writer.add_page(page_copy)
+                if not rects:
+                    writer.add_page(src_page)
+                    continue
+                # Rasterize, paint black, and replace the page with an image-only page
+                # so the original text is not left in the content stream.
+                scale = 2.0  # 144 dpi
+                img = doc[page_no].render(scale=scale).to_pil().convert("RGB")
+                draw = ImageDraw.Draw(img)
+                for x, y, w, h in rects:
+                    draw.rectangle([x * scale, y * scale, (x + w) * scale, (y + h) * scale], fill="black")
+                buf = io.BytesIO()
+                img.save(buf, format="PDF", resolution=72 * scale)
+                buf.seek(0)
+                writer.add_page(pypdf.PdfReader(buf).pages[0])
+            doc.close()
 
             with open(output, "wb") as f:
                 writer.write(f)

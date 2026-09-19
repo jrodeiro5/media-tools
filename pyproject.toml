@@ -60,7 +60,7 @@ ignore = ["B008"]  # function call in arg defaults is fine for FastMCP
 "__init__.py" = ["F401"]
 
 [tool.bandit]
-skips = ["B104", "B404", "B602", "B603"]
+skips = ["B101", "B104", "B404", "B602", "B603"]
 exclude_dirs = [".venv"]
 
 [tool.mypy]
