@@ -1,0 +1,19 @@
+uv.lock
+  s_09974e19cc2cc8::t_d17a609cb35245 56,58-84,88,90,886-887,1364-1365,2118-2119,3144-3145,3158-3159,3370-3371
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1fb34a6141aab776d778f23bd38f05c1127a5033",
+  "prompts": {},
+  "sessions": {
+    "s_09974e19cc2cc8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "25ed7bc3-7444-42a0-a53a-a625cd8b35f7",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
