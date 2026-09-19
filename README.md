@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/logo.svg" alt="media_tools" width="480"></p>
+
 # media-tools
 
 MCP server with **50+ multimedia processing tools** covering PDF, image, audio, video, Office documents, and AI-powered document analysis.
@@ -68,3 +70,5 @@ pre-commit run --all-files
 ## License
 
 [MIT](LICENSE)
+
+Logo wordmark is outlined from [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) (SIL OFL 1.1).
