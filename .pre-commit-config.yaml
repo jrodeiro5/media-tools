@@ -20,6 +20,7 @@ repos:
         entry: .venv/bin/mypy --config-file pyproject.toml
         language: system
         types: [python]
+        require_serial: true  # parallel batches share .mypy_cache and crash mypy
 
   - repo: local
     hooks:
