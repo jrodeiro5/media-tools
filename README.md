@@ -19,6 +19,8 @@
   <a href="#development">Development</a>
 </p>
 
+<p align="center"><img src="assets/demo.svg" alt="Terminal demo: merge and compress PDFs, then start the MCP server" width="720"></p>
+
 ---
 
 Ask your assistant to "merge these three PDFs, then compress the result" or "cut 10 seconds from this clip and make a GIF". It calls the matching tools; the files never leave your machine.
@@ -84,7 +86,7 @@ The same toolkits run without a server:
 
 ```bash
 media-tools pdf merge a.pdf b.pdf --output merged.pdf
-media-tools pdf compress merged.pdf --output small.pdf --quality 40
+media-tools pdf compress merged.pdf --output small.pdf
 media-tools --help
 ```
 
