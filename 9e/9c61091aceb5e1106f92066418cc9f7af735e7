@@ -1,0 +1,26 @@
+src/media_tools/tools/pdf.py
+  s_09974e19cc2cc8::t_aae2ae27359e43 974-976,978,991,1013,1016-1030
+  s_09974e19cc2cc8::t_69123671858e69 977
+  s_09974e19cc2cc8::t_c728d0e243860b 9
+tests/check_redact.py
+  s_09974e19cc2cc8::t_0848c4fdb36142 9,18
+  s_09974e19cc2cc8::t_aae2ae27359e43 1-8,10-17,19-25
+pyproject.toml
+  s_09974e19cc2cc8::t_341652904e1f1a 63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9e9c61091aceb5e1106f92066418cc9f7af735e7",
+  "prompts": {},
+  "sessions": {
+    "s_09974e19cc2cc8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "25ed7bc3-7444-42a0-a53a-a625cd8b35f7",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
