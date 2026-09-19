@@ -1,0 +1,23 @@
+README.md
+  s_09974e19cc2cc8::t_27aee57619a93c 22-23,89
+assets/demo.svg
+  s_09974e19cc2cc8::t_40008519d25ec4 9
+  s_09974e19cc2cc8::t_41bb6d860d0fe5 1-2,4-8,10
+  s_09974e19cc2cc8::t_a31f8db11ddefc 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3c81bba16133a77bf83f66f44f4be51d3f34722a",
+  "prompts": {},
+  "sessions": {
+    "s_09974e19cc2cc8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "25ed7bc3-7444-42a0-a53a-a625cd8b35f7",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
