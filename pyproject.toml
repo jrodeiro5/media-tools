@@ -81,7 +81,7 @@ warn_unused_configs = true
 disallow_untyped_defs = false
 
 [[tool.mypy.overrides]]
-module = ["pytesseract", "reportlab.*", "cv2", "rembg", "anydoc", "pdf2docx", "liteparse", "pydub", "pydub.*", "openai", "pypdfium2"]
+module = ["presidio_analyzer", "presidio_analyzer.*", "pytesseract", "reportlab.*", "cv2", "rembg", "anydoc", "pdf2docx", "liteparse", "pydub", "pydub.*", "openai", "pypdfium2"]
 ignore_missing_imports = true
 
 [tool.vulture]
