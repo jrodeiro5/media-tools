@@ -1382,7 +1382,8 @@ class PDFToolkit:
 
     @staticmethod
     def to_docx(input_path: str, output: str) -> str:
-        """Convert PDF to DOCX using pdf2docx."""
+        """Convert PDF to DOCX. Uses pdf2docx if the `docx` extra is installed (better layout, AGPL PyMuPDF),
+        otherwise LibreOffice's PDF import (text lands in text boxes, so it is far less editable)."""
         err = validate_input(input_path)
         if err:
             return err
@@ -1392,7 +1393,10 @@ class PDFToolkit:
 
         try:
             from pdf2docx import Converter
+        except ImportError:
+            return PDFToolkit._to_docx_soffice(input_path, output)
 
+        try:
             cv = Converter(input_path)
             cv.convert(output)
             cv.close()
@@ -1401,6 +1405,18 @@ class PDFToolkit:
         except Exception as exc:
             logger.error("to_docx failed: %s", exc)
             return f"Error: {exc}"
+
+    @staticmethod
+    def _to_docx_soffice(input_path: str, output: str) -> str:
+        outdir = Path(output).parent
+        cmd = ["soffice", "--headless", "--infilter=writer_pdf_import", "--convert-to", "docx", "--outdir"]
+        desc, ok = _subprocess_with_logging([*cmd, str(outdir), input_path], f"Converted to DOCX → {output}")
+        if not ok:
+            return desc
+        actual = outdir / f"{Path(input_path).stem}.docx"
+        if actual != Path(output):
+            actual.replace(output)
+        return desc
 
     @staticmethod
     def redact(

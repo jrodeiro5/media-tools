@@ -61,6 +61,8 @@ Set `PORT` to change the port. To expose only one family of tools (and keep the 
 <tr><td><b>Batch</b> · 1</td><td>folder sweep: one op across every matching file, outputs to a separate dir, never in place</td></tr>
 </table>
 
+`pdf_to_docx` uses LibreOffice by default (text ends up in text boxes). For real layout reconstruction install `uv sync --extra docx`, which adds pdf2docx and its AGPL-3.0 PyMuPDF dependency.
+
 `pii_scan` and `pii_redact` need the optional extra (`uv sync --extra pii`, adds Presidio). They match by pattern and checksum, so names and addresses are not detected, and `pii_scan` returns masked previews, never the raw values.
 
 `pdf_redact` renders the matched pages to images and paints over the matches, so the text is gone from the file, not just hidden. Those pages lose their selectable text.

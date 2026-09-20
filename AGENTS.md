@@ -14,7 +14,7 @@ MCP server (FastMCP, streamable-http, no stdio) plus a homegrown argparse CLI ov
 - Never edit in place: outputs go to a new path (`office_edit`, `batch_sweep`, `returns_reclaim` all refuse to overwrite).
 - External binaries, not Python deps: ffmpeg, tesseract, LibreOffice (`soffice`), `officecli` (`brew install officecli`), `firecrawl` CLI. Tools return `Error: ...` strings when one is missing.
 - A new tool needs: toolkit method, `@mcp.tool` in `server.py` with a family tag, a CLI command if it fits, a README table row, and one `tests/check_*.py` assert.
-- Don't weaken bandit/mypy config to pass hooks; fix the code. `pdf2docx` pulls PyMuPDF (AGPL-3.0).
+- Don't weaken bandit/mypy config to pass hooks; fix the code. `pdf2docx` (PyMuPDF, AGPL-3.0) lives in the optional `docx` extra; without it `pdf_to_docx` falls back to LibreOffice.
 - `AGENTS.md` and `CLAUDE.md` are one file (`CLAUDE.md` is a git symlink to `AGENTS.md`); edit either, never split them. Keep this section above the generated blocks below.
 
 <!-- gitnexus:start -->
@@ -71,7 +71,7 @@ This repository has a generated `openwiki/` evidence index. It is optional just-
 - Treat source code and tests as authoritative. A brief's unknowns and review items are verification gaps, not automatic requirements.
 - Prefer the narrowest quiet validation that proves the changed behavior. Preserve complete failure output.
 
-The local atlas post-commit cascade (see atlas ARCHITECTURE.md) refreshes the repository wiki. Do not hand-edit generated OpenWiki pages unless explicitly asked; prefer updating source code/docs and letting OpenWiki regenerate.
+The scheduled OpenWiki GitHub Actions workflow refreshes the repository wiki. Do not hand-edit generated OpenWiki pages unless explicitly asked; prefer updating source code/docs and letting OpenWiki regenerate.
 
 <!-- OPENWIKI:END -->
 

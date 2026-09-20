@@ -36,7 +36,6 @@ dependencies = [
     "pytesseract>=0.3.10",
     "rembg>=2.0.75",
     "liteparse>=2.11.1",
-    "pdf2docx>=0.5.13",
     "opencv-python-headless>=5.0.0.93",
 ]
 
@@ -69,6 +68,9 @@ Homepage = "https://github.com/jrodeiro5/media-tools"
 Issues = "https://github.com/jrodeiro5/media-tools/issues"
 
 [project.optional-dependencies]
+docx = [
+    "pdf2docx>=0.5.13",  # pulls PyMuPDF (AGPL-3.0)
+]
 pii = [
     "presidio-analyzer>=2.2.364",
 ]

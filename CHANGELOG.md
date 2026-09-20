@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- `pdf2docx` (AGPL-3.0 via PyMuPDF) moved to the optional `docx` extra; `pdf_to_docx` falls back to LibreOffice without it.
+
 ## 0.1.0 — 2026-09-20
 
 First tagged release.
