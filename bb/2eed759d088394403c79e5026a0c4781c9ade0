@@ -1,0 +1,274 @@
+BACKLOG.md
+  s_5866f6daaecbee::t_558d1b1c508eb7 5-14
+tests/check_video_mute.py
+  s_5866f6daaecbee::t_ff84279d9fa811 13-33,36-37
+  s_d7851634079ab6::t_33d005bdba5124 1-12,34-35,38-41
+README.md
+  s_d763ea07e3ce53::t_3750ff56e36983 54
+  s_5866f6daaecbee::t_21d90417474f6c 112
+  s_d763ea07e3ce53::t_9081d6d31be9a6 56
+  s_5866f6daaecbee::t_f135df8f0bae7c 125-126
+  s_fd680f3d7cd6b2::t_f4557b17679c61 55,78
+  s_5866f6daaecbee::t_51fe68586c9eb7 5
+  s_178507b1c4f9db::t_ff8cf5ab461b17 62,92
+  s_9aad7dbb5659c9::t_bf8f22e4f5af1d 53,74
+  s_d763ea07e3ce53::t_25a3570a977bc9 76,80
+  s_178507b1c4f9db::t_4738b2536664e1 93
+src/media_tools/refusals.py
+  s_f9a5796e67903d::t_5ec489369f1f64 1-103
+src/media_tools/tools/_vision.py
+  s_d763ea07e3ce53::t_5f06e981d2fbfd 60-61
+  s_d763ea07e3ce53::t_e7ba5db6b5d310 1-19,21,26-40,42-59,62-71,73-82,84-86,88-147
+  s_d763ea07e3ce53::t_c17333e319317d 41,83
+  s_d763ea07e3ce53::t_4e99b14985f9e5 20,22-25,72,87
+src/media_tools/tools/office.py
+  s_f9a5796e67903d::t_20fb747e57a833 102
+  s_f9a5796e67903d::t_8a2860362367dd 12
+CHANGELOG.md
+  s_5866f6daaecbee::t_962c3917ef54d2 6-10
+scripts/convert_pdf.py
+  s_5866f6daaecbee::t_886ba13b33ca19 101
+  s_5866f6daaecbee::t_d90e9588d69963 108
+  s_5866f6daaecbee::t_a734b480360345 88-89
+  s_5866f6daaecbee::t_2aa15157da6304 131,134,136
+src/media_tools/tools/ai.py
+  s_69b811ab3bbab5::t_c8b2853923e024 54-56
+tests/check_probe.py
+  s_5866f6daaecbee::t_00c1154add7a87 23-24
+  s_178507b1c4f9db::t_f2539b896f5b58 1-10,12-15,17-22,25-47,52-53,71-116
+  s_5866f6daaecbee::t_ab79d86c274983 54-70
+  s_178507b1c4f9db::t_6f31ecefed7aff 11,16
+  s_178507b1c4f9db::t_c48a8350cefa27 48-51
+tests/check_tables_csv.py
+  s_11ce41afb736c8::t_523c840597426b 1-8,10-19,21-33,42-44
+  s_11ce41afb736c8::t_5b12a6445d51a4 41
+  s_11ce41afb736c8::t_bf9df3570ba005 34-40
+  s_11ce41afb736c8::t_b97b0a74310097 20
+  s_11ce41afb736c8::t_f173b1d5042fc8 9
+tests/check_faces_upscale.py
+  s_5866f6daaecbee::t_a4ff9dc3f60bd3 4,14-15,49-53,57-59,63-76
+  s_d763ea07e3ce53::t_ac42c3cdd608bb 2-3,5-13,16-48,54-56,60-62,77-84
+  s_5866f6daaecbee::t_486815c785f0fd 1
+ROADMAP.md
+  s_5866f6daaecbee::t_312bf0977215b4 1-31
+src/media_tools/server.py
+  s_847b276b71a0b2::t_1f8909af0298d8 240-245
+  s_d0cfc62506a7d8::t_f2bc4980547098 885,889-890
+  s_fd680f3d7cd6b2::t_83ef3faa55b8af 433
+  s_d7851634079ab6::t_573228b15d8f95 404-409
+  s_d763ea07e3ce53::t_f94763cd998570 349-361,606-617
+  s_11ce41afb736c8::t_67fc44c677c8f4 100-109
+  s_fd680f3d7cd6b2::t_01ac9934a811f2 422-432,434-435,707-710
+  s_4706a0e9088d81::t_e10eb723b47f0c 584-605,618-619
+  s_9aad7dbb5659c9::t_c8f3022bc8cc85 841-848
+  s_5866f6daaecbee::t_963013bbd167bc 1
+  s_178507b1c4f9db::t_0b9267a4856374 864-880
+  s_fd680f3d7cd6b2::t_e05ee195183c05 711-712
+src/media_tools/tools/pdf.py
+  s_050e2f863ec695::t_f33e3e50ad80ba 1281,1286-1287
+  s_f9a5796e67903d::t_54263c871bac6b 1419-1420
+  s_f9a5796e67903d::t_956e03ecc52fa5 14
+  s_f9a5796e67903d::t_c4b081750ad9f9 1375-1377
+  s_eaf413811a9780::t_b4b257fc1b0346 308-329,333-413,421,423-432,437-442
+  s_9aad7dbb5659c9::t_40b990d9b11e19 51-104,108-110
+  s_847b276b71a0b2::t_4f17c05754ed05 1660-1664,1667-1688
+  s_11ce41afb736c8::t_191ab015af7c5b 1954
+  s_9aad7dbb5659c9::t_8051e9c16f4cec 105-107
+  s_11ce41afb736c8::t_35363ac3dd6d8a 614,1659,1906-1953,1955-1963
+  s_847b276b71a0b2::t_95fcfa8da3bde7 1665-1666
+  s_9aad7dbb5659c9::t_9b7f5ee07f5e4a 615-717
+src/media_tools/tools/audio.py
+  s_fd680f3d7cd6b2::t_83ef3faa55b8af 477
+  s_fd680f3d7cd6b2::t_5da6050717eb69 415-476,478-488
+tests/check_image.py
+  s_5866f6daaecbee::t_f4f60589a7942a 33-36
+  s_9aad7dbb5659c9::t_50ca9436867cde 1-32,37-45
+tests/check_html_to_pdf.py
+  s_847b276b71a0b2::t_9260e4e3fffd7c 37
+  s_847b276b71a0b2::t_bbb0856b2cfe41 1-36,38-39
+src/media_tools/tools/__init__.py
+  s_178507b1c4f9db::t_e062af57c4f94a 7,19
+tests/check_refusals.py
+  s_f9a5796e67903d::t_72979dfb8a316d 67
+  s_f9a5796e67903d::t_6e1de5274549ca 1-66,68-72
+pyproject.toml
+  s_5866f6daaecbee::t_0dd58d3deb6140 11
+  s_d763ea07e3ce53::t_7705d6e6c356fc 39
+  s_69b811ab3bbab5::t_1ac4dca88c72ea 40
+tests/check_subtitles.py
+  s_5866f6daaecbee::t_e77ebb8df31b5b 86-108
+  s_fd680f3d7cd6b2::t_e95f4cb370e832 1-30,34-85,109-121,132-134
+  s_fd680f3d7cd6b2::t_8eb64a582527cd 122-131
+  s_5866f6daaecbee::t_1050579ee1a525 31-33
+src/media_tools/tools/image.py
+  s_d0cfc62506a7d8::t_4a646acb9105a5 712-715
+  s_d763ea07e3ce53::t_a56f401e917e82 839-863,865-919
+  s_d763ea07e3ce53::t_92ded61442e94e 864
+  s_4706a0e9088d81::t_44c74aa414ff8e 721-838
+src/media_tools/tools/video.py
+  s_fd680f3d7cd6b2::t_03f28f74bc10e4 548-599
+  s_5866f6daaecbee::t_23af32ae1322cd 533-534
+  s_d763ea07e3ce53::t_70f440d01201c8 254,547,1037-1137
+  s_5866f6daaecbee::t_4a96c52b1219f5 535
+  s_d7851634079ab6::t_c18298d0aacfb5 255-267
+  s_5866f6daaecbee::t_c89b4be8f83681 536-537
+tests/check_pdf_repair.py
+  s_5866f6daaecbee::t_f916c20fa3eb8c 25-26,30
+  s_9aad7dbb5659c9::t_e9368f707d0dee 70-72
+  s_9aad7dbb5659c9::t_f62a659c273504 1-24,27-29,31-69,73-76
+src/media_tools/cli.py
+  s_fd680f3d7cd6b2::t_34cfbc4492437e 733,810-820
+  s_9aad7dbb5659c9::t_5a19bc439ea45d 523
+  s_178507b1c4f9db::t_f25af9389e7aad 903-905
+  s_4706a0e9088d81::t_ef2af55a2a70be 632-652
+  s_d763ea07e3ce53::t_2bcf0eb4d2997c 222-229,366-367
+  s_9aad7dbb5659c9::t_f901f92e7ac099 136-139
+  s_11ce41afb736c8::t_554b0bcecdff7d 491
+  s_11ce41afb736c8::t_4b4fb66c2dcbf2 447-454
+  s_11ce41afb736c8::t_a4827f58a1f346 70-73
+  s_fd680f3d7cd6b2::t_ad95d19cae53a1 276-279,340-343
+  s_d7851634079ab6::t_bd79b57be6e10b 328-331
+  s_4706a0e9088d81::t_e821d0b2920f2a 206-221
+  s_d763ea07e3ce53::t_caef09eda2bd18 653-668,821,863-871
+  s_d7851634079ab6::t_29ec103324113c 799
+  s_178507b1c4f9db::t_8424e5adb72993 23,394-397
+  s_847b276b71a0b2::t_042c3ced4b0f6f 84-87
+  s_fd680f3d7cd6b2::t_49821e465a5120 344-345
+  s_d763ea07e3ce53::t_02d277ef16d7f4 368-369
+  s_178507b1c4f9db::t_573104d0da8239 906
+src/media_tools/tools/probe.py
+  s_9aad7dbb5659c9::t_7af1df36063a93 52,362-365
+  s_fd680f3d7cd6b2::t_6980e64bfc7d5e 100,120
+  s_178507b1c4f9db::t_24b62b37864b30 1-51,53-82,85-99,101-119,121-127,129-361,366-442
+  s_d763ea07e3ce53::t_e56f75317e68e5 83-84,128
+uv.lock
+  s_346ff4a3a1075c::t_edfe9c6d42d9f9 1003-1015,1041-1067,1159-1271,1750-1751,1790-1791,2064-2081,2094-2112,3791-3799,4150-4158
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "bb2eed759d088394403c79e5026a0c4781c9ade0",
+  "prompts": {},
+  "sessions": {
+    "s_050e2f863ec695": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_f4054dadfffeUtXWT6D2kq7d2B",
+        "model": "unknown"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_11ce41afb736c8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_f4036e47bffd7QSOQ9Yh9p47VN",
+        "model": "unknown"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_178507b1c4f9db": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_f40129404fferUtuQmy2d7fY7b",
+        "model": "unknown"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_346ff4a3a1075c": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f3fe9be7affdrPSyPljHLZJjJ9",
+        "model": "muse-spark-1.3-contributor"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_4706a0e9088d81": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_f4036e6d9ffewxuKmMi5ehziYm",
+        "model": "unknown"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_5866f6daaecbee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_f407596b4ffeVWNtd9VDd33JMA",
+        "model": "unknown"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_69b811ab3bbab5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_f4054d9c2ffeCo2jJS3vfoFzpp",
+        "model": "unknown"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_847b276b71a0b2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_f4036e5adffdxSmPTrKzZ4K8yI",
+        "model": "unknown"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_9aad7dbb5659c9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_f4000e479ffeyBqCOALTiDX0ZQ",
+        "model": "unknown"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_d0cfc62506a7d8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_f4054d898ffecvZL3yAJgbHWYs",
+        "model": "unknown"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_d763ea07e3ce53": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_f3fe9be7affdrPSyPljHLZJjJ9",
+        "model": "unknown"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_d7851634079ab6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_f4036e343ffe1RdhMK91D9VE9T",
+        "model": "unknown"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_eaf413811a9780": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_f401297d0ffewcoE2PeZuf9wyk",
+        "model": "unknown"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_f9a5796e67903d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_f40129558ffeZyagz07HmB7CR5",
+        "model": "unknown"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_fd680f3d7cd6b2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_f3fff55acffd6axcl5xilbckw5",
+        "model": "unknown"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
