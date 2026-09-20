@@ -47,7 +47,12 @@ This project is indexed by GitNexus as **media-tools** (671 symbols, 1305 relati
 
 ## OpenWiki
 
-See [AGENTS.md](AGENTS.md) for OpenWiki agent instructions.
+This repository has a generated `openwiki/` evidence index. It is optional just-in-time context, not required startup reading.
+
+- Treat source code and tests as authoritative. A brief's unknowns and review items are verification gaps, not automatic requirements.
+- Prefer the narrowest quiet validation that proves the changed behavior. Preserve complete failure output.
+
+The local atlas post-commit cascade (see atlas ARCHITECTURE.md) refreshes the repository wiki. Do not hand-edit generated OpenWiki pages unless explicitly asked; prefer updating source code/docs and letting OpenWiki regenerate.
 
 <!-- OPENWIKI:END -->
 
@@ -66,6 +71,23 @@ qmd query "<topic>"             # search every repo/service/config on this machi
 Also here: `almanac/` = why it was built this way (mined decisions,
 pitfalls, incidents). `openwiki/` = how it works right now (generated from
 current code).
+
+### Qué NO editar aquí
+
+Tres cosas de este repo las escribe la máquina, no tú:
+
+- `openwiki/` — regenerado por el cascade en cada commit (modelo local). Editarlo a
+  mano no se pierde al instante: se pierde en el siguiente commit, sin avisar.
+  ¿Falta algo? Arréglalo en el código o en los docs, y deja que se regenere.
+- `almanac/` — lo mina CodeAlmanac y lo auto-commitea. Tus ediciones van **sólo**
+  bajo su marker `<!-- manual -->`; por encima, se reescriben.
+- `AGENTS.md` — symlink a `CLAUDE.md` (algún repo lo lleva como fichero real, por
+  convención): edita `CLAUDE.md`. El cascade lo sustituye por una copia real mientras
+  genera y lo restaura al terminar, así que un `T` transitorio en `git status` es ese
+  swap, no corrupción.
+
+Los hooks (`pre-commit` = gitleaks, `post-commit` = este cascade) son de atlas y
+compartidos por todos los repos de la máquina: no los edites aquí.
 
 Atlas regenerates the entity doc from scans — hand-edits go below its
 `<!-- manual -->` marker only. Source: ~/dev/infra/atlas.

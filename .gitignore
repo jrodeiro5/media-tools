@@ -56,3 +56,15 @@ Thumbs.db
 
 # Ficheros de prueba locales (no versionar)
 file_tests/
+
+# Caches de type-check / complejidad (no versionar)
+.mypy_cache/
+.complexipy_cache/
+
+# Artefactos de browser automation local (no versionar)
+.playwright-cli/
+
+# OpenWiki generado (no versionar derivados)
+openwiki/.last-update.json
+openwiki/.page-manifest.json
+openwiki/.claims/

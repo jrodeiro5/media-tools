@@ -14,11 +14,14 @@ from __future__ import annotations
 import argparse
 import json
 
+from media_tools.sweep import SWEEP_OPS, sweep
 from media_tools.tools.audio import AudioToolkit
 from media_tools.tools.image import ImageToolkit
 from media_tools.tools.office import OfficeToolkit
 from media_tools.tools.pdf import PDFToolkit
+from media_tools.tools.pii import PiiToolkit
 from media_tools.tools.video import VideoToolkit
+from media_tools.utils import returns_reclaim
 
 
 def _result(value: str) -> str:
@@ -36,11 +39,11 @@ def _error(msg: str) -> str:
 
 
 def _pdf_merge(ns):
-    return PDFToolkit.merge(ns.input, ns.output)
+    return PDFToolkit.merge(ns.input, ns.output, ns.cover)
 
 
 def _pdf_split(ns):
-    return PDFToolkit.split(ns.input, ns.pages, ns.output)
+    return PDFToolkit.split(ns.input, ns.pages, ns.output, ns.cover)
 
 
 def _pdf_compress(ns):
@@ -59,8 +62,18 @@ def _pdf_extract_images(ns):
     return PDFToolkit.extract_images(ns.input, ns.output, ns.dpi)
 
 
+def _pdf_extract_tables(ns):
+    return PDFToolkit.extract_tables(ns.input, ns.output, ns.pages)
+
+
 def _pdf_to_markdown(ns):
     return PDFToolkit.pdf_to_markdown(ns.input, ns.output)
+
+
+def _pdf_md_to_pdf(ns):
+    return PDFToolkit.md_to_branded_pdf(
+        ns.input, ns.output, ns.font, ns.color, ns.logo, ns.logo_position, ns.page_numbers
+    )
 
 
 def _pdf_watermark(ns):
@@ -105,6 +118,10 @@ def _pdf_compare(ns):
 
 def _pdf_to_a(ns):
     return PDFToolkit.pdf_to_a(ns.input, ns.output, ns.version)
+
+
+def _pdf_salvage(ns):
+    return PDFToolkit.salvage(ns.input, ns.output, ns.ocr_fallback, ns.dpi)
 
 
 def _image_convert(ns):
@@ -155,6 +172,24 @@ def _image_info(ns):
     return ImageToolkit.info(ns.input)
 
 
+def _image_watermark(ns):
+    return ImageToolkit.watermark(ns.input, ns.watermark, ns.output, ns.position, ns.margin, ns.opacity)
+
+
+def _image_apply_brand(ns):
+    return ImageToolkit.apply_brand_kit(
+        ns.input, ns.output, ns.font, ns.color, ns.logo, ns.logo_position, ns.logo_scale
+    )
+
+
+def _image_collage(ns):
+    return ImageToolkit.collage(ns.input, ns.output, ns.columns, ns.cell_size, ns.spacing, ns.background)
+
+
+def _image_social_pack(ns):
+    return ImageToolkit.export_social_pack(ns.input, ns.output, ns.mode)
+
+
 def _audio_convert(ns):
     return AudioToolkit.convert(ns.input, ns.output)
 
@@ -173,6 +208,32 @@ def _audio_speed(ns):
 
 def _audio_info(ns):
     return AudioToolkit.info(ns.input)
+
+
+def _audio_merge(ns):
+    return AudioToolkit.merge(ns.input, ns.output)
+
+
+def _audio_normalize(ns):
+    return AudioToolkit.normalize(ns.input, ns.output, ns.target_dbfs)
+
+
+def _audio_chunk_silence(ns):
+    return AudioToolkit.chunk_silence(ns.input, ns.output, ns.min_silence, ns.silence_thresh, ns.keep)
+
+
+def _audio_transcribe(ns):
+    return AudioToolkit.transcribe(ns.input, ns.output, ns.model, ns.language)
+
+
+def _audio_transcribe_chunks(ns):
+    return AudioToolkit.transcribe_chunks(
+        ns.input, ns.output, ns.model, ns.language, ns.min_silence, ns.silence_thresh, ns.keep
+    )
+
+
+def _audio_pad_to_duration(ns):
+    return AudioToolkit.pad_to_duration(ns.input, ns.output, ns.target_ms, ns.position)
 
 
 def _video_convert(ns):
@@ -195,12 +256,84 @@ def _video_info(ns):
     return VideoToolkit.probe(ns.input)
 
 
+def _video_merge(ns):
+    return VideoToolkit.merge(ns.input, ns.output, ns.cover)
+
+
+def _video_thumbnail(ns):
+    return VideoToolkit.thumbnail(ns.input, ns.output, ns.timestamp, ns.accurate)
+
+
+def _video_crop(ns):
+    return VideoToolkit.crop(ns.input, ns.output, ns.width, ns.height, ns.x, ns.y)
+
+
+def _video_rotate(ns):
+    return VideoToolkit.rotate(ns.input, ns.output, ns.angle)
+
+
+def _video_resize(ns):
+    return VideoToolkit.resize(ns.input, ns.output, ns.width, ns.height)
+
+
+def _video_watermark(ns):
+    return VideoToolkit.watermark(ns.input, ns.watermark, ns.output, ns.position, ns.margin)
+
+
+def _video_reverse(ns):
+    return VideoToolkit.reverse(ns.input, ns.output)
+
+
+def _video_speed(ns):
+    return VideoToolkit.speed(ns.input, ns.output, ns.factor)
+
+
+def _video_subtitle_burn(ns):
+    return VideoToolkit.subtitle_burn(ns.input, ns.subtitle, ns.output, ns.preset)
+
+
+def _video_gif_to_mp4(ns):
+    return VideoToolkit.gif_to_mp4(ns.input, ns.output)
+
+
+def _video_contact_sheet(ns):
+    return VideoToolkit.contact_sheet(ns.input, ns.output, ns.cols, ns.fps, ns.thumb_width, ns.manifest)
+
+
+def _video_social_pack(ns):
+    return VideoToolkit.export_social_pack(ns.input, ns.output, ns.mode)
+
+
+def _video_chroma_cut(ns):
+    return VideoToolkit.chroma_cut(ns.input, ns.output, ns.color, ns.similarity, ns.blend, ns.background)
+
+
+def _video_object_erase(ns):
+    return VideoToolkit.object_erase(ns.input, ns.output, ns.box, ns.start, ns.duration)
+
+
 def _office_to_markdown(ns):
     return OfficeToolkit.to_markdown(ns.input, ns.output)
 
 
 def _office_to_pdf(ns):
     return OfficeToolkit.to_pdf(ns.input, ns.output)
+
+
+def _pii_scan(ns):
+    return PiiToolkit.scan(ns.input)
+
+
+def _pii_redact(ns):
+    return PiiToolkit.redact(ns.input, ns.output)
+
+
+def _returns_reclaim(ns):
+    return returns_reclaim(ns.ticket, ns.output, search_dir=ns.search_dir)
+
+
+def _batch_sweep(ns):
+    return sweep(ns.input_dir, ns.output, ns.op, ns.pattern, ns.max_files)
 
 
 def _pages_list(value: str) -> list[int]:
@@ -230,13 +363,41 @@ def build_parser() -> argparse.ArgumentParser:
     IN_MANY = (("input",), {"nargs": "+"})
 
     pdf = categories.add_parser("pdf").add_subparsers(dest="command", required=True)
-    add(pdf, "merge", _pdf_merge, IN_MANY, REQ_OUT)
-    add(pdf, "split", _pdf_split, IN_ONE, REQ_OUT, (("--pages",), {"required": True}))
+    add(pdf, "merge", _pdf_merge, IN_MANY, REQ_OUT, (("--cover",), {"action": "store_true"}))
+    add(
+        pdf,
+        "split",
+        _pdf_split,
+        IN_ONE,
+        REQ_OUT,
+        (("--pages",), {"required": True}),
+        (("--cover",), {"action": "store_true"}),
+    )
     add(pdf, "compress", _pdf_compress, IN_ONE, REQ_OUT, (("--quality",), {"type": int, "default": 50}))
     add(pdf, "rotate", _pdf_rotate, IN_ONE, REQ_OUT, (("--angle",), {"type": int, "default": 90}))
     add(pdf, "extract-text", _pdf_extract_text, IN_ONE, OPT_OUT)
     add(pdf, "extract-images", _pdf_extract_images, IN_ONE, REQ_OUT, (("--dpi",), {"type": int, "default": 150}))
+    add(
+        pdf,
+        "extract-tables",
+        _pdf_extract_tables,
+        IN_ONE,
+        REQ_OUT,
+        (("--pages",), {"type": _pages_list, "default": None}),
+    )
     add(pdf, "to-markdown", _pdf_to_markdown, IN_ONE, OPT_OUT)
+    add(
+        pdf,
+        "md-to-pdf",
+        _pdf_md_to_pdf,
+        IN_ONE,
+        REQ_OUT,
+        (("--font",), {"default": None}),
+        (("--color",), {"default": None}),
+        (("--logo",), {"default": None}),
+        (("--logo-position",), {"default": "bottom-right", "dest": "logo_position"}),
+        (("--page-numbers",), {"action": argparse.BooleanOptionalAction, "default": True}),
+    )
     add(
         pdf,
         "watermark",
@@ -282,6 +443,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     add(pdf, "compare", _pdf_compare, IN_ONE, (("other",), {}))
     add(pdf, "to-a", _pdf_to_a, IN_ONE, REQ_OUT, (("--version",), {"default": "1b"}))
+    add(
+        pdf,
+        "salvage",
+        _pdf_salvage,
+        IN_ONE,
+        REQ_OUT,
+        (("--dpi",), {"type": int, "default": 150}),
+        (("--no-ocr",), {"action": "store_false", "dest": "ocr_fallback"}),
+    )
 
     image = categories.add_parser("image").add_subparsers(dest="command", required=True)
     add(image, "convert", _image_convert, IN_ONE, REQ_OUT, (("--quality",), {"type": int, "default": 85}))
@@ -348,6 +518,48 @@ def build_parser() -> argparse.ArgumentParser:
     add(image, "blur", _image_blur, IN_ONE, REQ_OUT, (("--radius",), {"type": float, "default": 5.0}))
     add(image, "ocr", _image_ocr, IN_ONE)
     add(image, "info", _image_info, IN_ONE)
+    add(
+        image,
+        "watermark",
+        _image_watermark,
+        IN_ONE,
+        REQ_OUT,
+        (("--watermark",), {"required": True}),
+        (("--position",), {"default": "bottom-right"}),
+        (("--margin",), {"type": int, "default": 10}),
+        (("--opacity",), {"type": float, "default": 1.0}),
+    )
+    add(
+        image,
+        "apply-brand",
+        _image_apply_brand,
+        IN_ONE,
+        REQ_OUT,
+        (("--font",), {"default": None}),
+        (("--color",), {"default": None}),
+        (("--logo",), {"default": None}),
+        (("--logo-position",), {"default": "bottom-right", "dest": "logo_position"}),
+        (("--logo-scale",), {"type": float, "default": 0.15, "dest": "logo_scale"}),
+    )
+    add(
+        image,
+        "collage",
+        _image_collage,
+        IN_MANY,
+        REQ_OUT,
+        (("--columns",), {"type": int, "default": 2}),
+        (("--cell-size",), {"type": int, "default": 300, "dest": "cell_size"}),
+        (("--spacing",), {"type": int, "default": 5}),
+        (("--background",), {"default": "#ffffff"}),
+    )
+    add(
+        image,
+        "social-pack",
+        _image_social_pack,
+        IN_ONE,
+        REQ_OUT,
+        (("--mode",), {"default": "center-crop", "choices": ["center-crop", "letterbox"]}),
+    )
 
     audio = categories.add_parser("audio").add_subparsers(dest="command", required=True)
     add(audio, "convert", _audio_convert, IN_ONE, REQ_OUT)
@@ -363,6 +575,55 @@ def build_parser() -> argparse.ArgumentParser:
     add(audio, "fade", _audio_fade, IN_ONE, REQ_OUT)
     add(audio, "speed", _audio_speed, IN_ONE, REQ_OUT, (("--factor",), {"type": float, "default": 1.5}))
     add(audio, "info", _audio_info, IN_ONE)
+    add(audio, "merge", _audio_merge, IN_MANY, REQ_OUT)
+    add(
+        audio,
+        "normalize",
+        _audio_normalize,
+        IN_ONE,
+        REQ_OUT,
+        (("--target-dbfs",), {"type": float, "default": -20.0, "dest": "target_dbfs"}),
+    )
+    add(
+        audio,
+        "chunk-silence",
+        _audio_chunk_silence,
+        IN_ONE,
+        REQ_OUT,
+        (("--min-silence",), {"type": int, "default": 1000, "dest": "min_silence"}),
+        (("--silence-thresh",), {"type": float, "default": None, "dest": "silence_thresh"}),
+        (("--keep",), {"type": int, "default": 200}),
+    )
+    add(
+        audio,
+        "transcribe",
+        _audio_transcribe,
+        IN_ONE,
+        OPT_OUT,
+        (("--model",), {"default": None}),
+        (("--language",), {"default": None}),
+    )
+    add(
+        audio,
+        "transcribe-chunks",
+        _audio_transcribe_chunks,
+        IN_ONE,
+        REQ_OUT,
+        (("--model",), {"default": None}),
+        (("--language",), {"default": None}),
+        (("--min-silence",), {"type": int, "default": 1000, "dest": "min_silence"}),
+        (("--silence-thresh",), {"type": float, "default": None, "dest": "silence_thresh"}),
+        (("--keep",), {"type": int, "default": 200}),
+    )
+    add(
+        audio,
+        "pad-to-duration",
+        _audio_pad_to_duration,
+        IN_ONE,
+        REQ_OUT,
+        (("--target-ms",), {"type": int, "required": True, "dest": "target_ms"}),
+        (("--position",), {"default": "end", "choices": ["end", "start", "middle"]}),
+    )
 
     video = categories.add_parser("video").add_subparsers(dest="command", required=True)
     add(video, "convert", _video_convert, IN_ONE, REQ_OUT)
@@ -386,10 +647,129 @@ def build_parser() -> argparse.ArgumentParser:
         (("--fps",), {"type": int, "default": 10}),
     )
     add(video, "info", _video_info, IN_ONE)
+    add(video, "merge", _video_merge, IN_MANY, REQ_OUT, (("--cover",), {"action": "store_true"}))
+    add(
+        video,
+        "thumbnail",
+        _video_thumbnail,
+        IN_ONE,
+        REQ_OUT,
+        (("--timestamp",), {"default": "00:00:01", "help": "HH:MM:SS"}),
+        (("--accurate",), {"action": "store_true", "help": "frame-exact output-seek (slower)"}),
+    )
+    add(
+        video,
+        "crop",
+        _video_crop,
+        IN_ONE,
+        REQ_OUT,
+        (("--width",), {"type": int, "required": True}),
+        (("--height",), {"type": int, "required": True}),
+        (("--x",), {"type": int, "default": 0}),
+        (("--y",), {"type": int, "default": 0}),
+    )
+    add(video, "rotate", _video_rotate, IN_ONE, REQ_OUT, (("--angle",), {"type": int, "default": 90}))
+    add(
+        video,
+        "resize",
+        _video_resize,
+        IN_ONE,
+        REQ_OUT,
+        (("--width",), {"type": int, "required": True}),
+        (("--height",), {"type": int, "default": -2}),
+    )
+    add(
+        video,
+        "watermark",
+        _video_watermark,
+        IN_ONE,
+        REQ_OUT,
+        (("--watermark",), {"required": True}),
+        (("--position",), {"default": "bottom-right"}),
+        (("--margin",), {"type": int, "default": 10}),
+    )
+    add(video, "reverse", _video_reverse, IN_ONE, REQ_OUT)
+    add(video, "speed", _video_speed, IN_ONE, REQ_OUT, (("--factor",), {"type": float, "default": 2.0}))
+    add(
+        video,
+        "subtitle-burn",
+        _video_subtitle_burn,
+        IN_ONE,
+        REQ_OUT,
+        (("--subtitle",), {"required": True}),
+        (("--preset",), {"default": "plain", "choices": ["plain", "karaoke", "social"]}),
+    )
+    add(video, "gif-to-mp4", _video_gif_to_mp4, IN_ONE, REQ_OUT)
+    add(
+        video,
+        "contact-sheet",
+        _video_contact_sheet,
+        IN_ONE,
+        REQ_OUT,
+        (("--cols",), {"type": int, "default": 4}),
+        (("--fps",), {"type": int, "default": 1}),
+        (("--thumb-width",), {"type": int, "default": 320, "dest": "thumb_width"}),
+        (("--no-manifest",), {"action": "store_false", "dest": "manifest"}),
+    )
+    add(
+        video,
+        "social-pack",
+        _video_social_pack,
+        IN_ONE,
+        REQ_OUT,
+        (("--mode",), {"default": "center-crop", "choices": ["center-crop", "letterbox"]}),
+    )
+    add(
+        video,
+        "chroma-cut",
+        _video_chroma_cut,
+        IN_ONE,
+        REQ_OUT,
+        (("--color",), {"default": "00FF00"}),
+        (("--similarity",), {"type": float, "default": 0.3}),
+        (("--blend",), {"type": float, "default": 0.1}),
+        (("--background",), {"default": "black"}),
+    )
+    add(
+        video,
+        "object-erase",
+        _video_object_erase,
+        IN_ONE,
+        REQ_OUT,
+        (("--box",), {"action": "append", "required": True, "help": "x,y,w,h, repeatable"}),
+        (("--start",), {"default": None}),
+        (("--duration",), {"default": None}),
+    )
 
     office = categories.add_parser("office").add_subparsers(dest="command", required=True)
     add(office, "to-markdown", _office_to_markdown, IN_ONE, OPT_OUT)
     add(office, "to-pdf", _office_to_pdf, IN_ONE, REQ_OUT)
+
+    pii = categories.add_parser("pii").add_subparsers(dest="command", required=True)
+    add(pii, "scan", _pii_scan, IN_ONE)
+    add(pii, "redact", _pii_redact, IN_ONE, REQ_OUT)
+
+    batch = categories.add_parser("batch").add_subparsers(dest="command", required=True)
+    add(
+        batch,
+        "sweep",
+        _batch_sweep,
+        (("input_dir",), {}),
+        REQ_OUT,
+        (("--op",), {"required": True, "choices": list(SWEEP_OPS)}),
+        (("--pattern",), {"default": "*"}),
+        (("--max-files",), {"type": int, "default": 200, "dest": "max_files"}),
+    )
+
+    returns = categories.add_parser("returns").add_subparsers(dest="command", required=True)
+    add(
+        returns,
+        "reclaim",
+        _returns_reclaim,
+        (("ticket",), {"help": "ticket ID from a stash message, or a _returns/ stash path"}),
+        OPT_OUT,
+        (("--search-dir",), {"default": "_returns", "dest": "search_dir"}),
+    )
 
     return parser
 

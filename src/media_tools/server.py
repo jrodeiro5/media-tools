@@ -11,6 +11,7 @@ from media_tools.tools import (
     ImageToolkit,
     OfficeToolkit,
     PDFToolkit,
+    PiiToolkit,
     VideoToolkit,
 )
 from media_tools.utils import setup_logging
@@ -29,15 +30,15 @@ mcp = FastMCP(
 
 
 @mcp.tool(name="pdf_merge", tags={"pdf"})
-def pdf_merge(files: list[str], output: str) -> str:
-    """Merge multiple PDF files into a single output file."""
-    return PDFToolkit.merge(files, output)
+def pdf_merge(files: list[str], output: str, cover: bool = False) -> str:
+    """Merge multiple PDF files into a single output file. cover=True also renders a page-1 thumbnail."""
+    return PDFToolkit.merge(files, output, cover)
 
 
 @mcp.tool(name="pdf_split", tags={"pdf"})
-def pdf_split(input_path: str, pages: str, output_dir: str) -> str:
-    """Split a PDF. pages: page ranges like '1-3,5,7-9' (1-indexed)."""
-    return PDFToolkit.split(input_path, pages, output_dir)
+def pdf_split(input_path: str, pages: str, output_dir: str, cover: bool = False) -> str:
+    """Split a PDF. pages: page ranges like '1-3,5,7-9' (1-indexed). cover=True also renders thumbnails."""
+    return PDFToolkit.split(input_path, pages, output_dir, cover)
 
 
 @mcp.tool(name="pdf_compress", tags={"pdf"})
@@ -84,6 +85,16 @@ def pdf_extract_structured(
     Requires: pip install liteparse
     """
     return PDFToolkit.extract_structured(input_path, output, ocr, language, dpi)
+
+
+@mcp.tool(name="pdf_extract_tables", tags={"pdf"})
+def pdf_extract_tables(
+    input_path: str,
+    output_dir: str,
+    pages: list[int] | None = None,
+) -> str:
+    """Dump raw PDF tables to CSV files (one file per table, no layout preserved)."""
+    return PDFToolkit.extract_tables(input_path, output_dir, pages)
 
 
 @mcp.tool(name="pdf_extract_screenshots", tags={"pdf"})
@@ -194,13 +205,26 @@ def pdf_to_markdown(
     output: str | None = None,
     pages: list[int] | None = None,
 ) -> str:
-    """Convert a PDF (or DOCX, HTML, XLSX) to Markdown via Firecrawl CLI.
+    """Convert a PDF (or DOCX, HTML, XLSX) to Markdown locally with anydoc.
 
     Local files only. Supports .pdf, .docx, .html, .xlsx, .odt, .rtf.
-    Requires: npx firecrawl installed + FIRECRAWL_API_KEY env var.
-    Free tier: 500 requests/month.
+    No API key, no network — the file never leaves the machine.
     """
     return PDFToolkit.pdf_to_markdown(input_path, output, pages)
+
+
+@mcp.tool(name="md_to_branded_pdf", tags={"pdf"})
+def md_to_branded_pdf(
+    input_path: str,
+    output: str,
+    font_path: str | None = None,
+    color: str | None = None,
+    logo_path: str | None = None,
+    logo_position: str = "bottom-right",
+    page_numbers: bool = True,
+) -> str:
+    """Convert Markdown (H1-H3, lists, code, tables, images) to a branded PDF, offline."""
+    return PDFToolkit.md_to_branded_pdf(input_path, output, font_path, color, logo_path, logo_position, page_numbers)
 
 
 @mcp.tool(name="video_convert", tags={"video"})
@@ -248,6 +272,124 @@ def video_extract_audio(input_path: str, output: str, format: str = "mp3", bitra
     return VideoToolkit.extract_audio(input_path, output, format, bitrate)
 
 
+@mcp.tool(name="video_merge", tags={"video"})
+def video_merge(input_paths: list[str], output: str, cover: bool = False) -> str:
+    """Concatenate videos in order (stream-copy fast path, else re-encode). cover=True also grabs a thumbnail."""
+    return VideoToolkit.merge(input_paths, output, cover)
+
+
+@mcp.tool(name="video_contact_sheet", tags={"video"})
+def video_contact_sheet(
+    input_path: str,
+    output_png: str,
+    cols: int = 4,
+    fps: int = 1,
+    thumb_width: int = 320,
+    manifest: bool = True,
+) -> str:
+    """Render a grid contact sheet PNG + sidecar JSON manifest (tiles capped at 120, timestamps approximate on VFR)."""
+    from media_tools.tools.video import VideoToolkit
+
+    return VideoToolkit.contact_sheet(input_path, output_png, cols, fps, thumb_width, manifest)
+
+
+@mcp.tool(name="video_export_social_pack", tags={"video"})
+def video_export_social_pack(src: str, out_dir: str, mode: str = "center-crop") -> str:
+    """Export 9:16 / 1:1 / 16:9 MP4 variants in one decode pass. mode: center-crop or letterbox."""
+    from media_tools.tools.video import VideoToolkit
+
+    return VideoToolkit.export_social_pack(src, out_dir, mode)
+
+
+@mcp.tool(name="video_chroma_cut", tags={"video"})
+def video_chroma_cut(
+    input_path: str,
+    output: str,
+    color: str = "00FF00",
+    similarity: float = 0.3,
+    blend: float = 0.1,
+    background: str = "black",
+) -> str:
+    """Key out a solid color via colorkey, composited over a background image path or color."""
+    from media_tools.tools.video import VideoToolkit
+
+    return VideoToolkit.chroma_cut(input_path, output, color, similarity, blend, background)
+
+
+@mcp.tool(name="video_object_erase", tags={"video"})
+def video_object_erase(
+    input_path: str,
+    output: str,
+    boxes: list[str],
+    start: str | None = None,
+    duration: str | None = None,
+) -> str:
+    """Erase fixed x,y,w,h rects on every frame via inpaint (TELEA). Optional start/duration range."""
+    from media_tools.tools.video import VideoToolkit
+
+    return VideoToolkit.object_erase(input_path, output, boxes, start, duration)
+
+
+@mcp.tool(name="video_thumbnail", tags={"video"})
+def video_thumbnail(input_path: str, output: str, timestamp: str = "00:00:01", accurate: bool = False) -> str:
+    """Grab a single frame thumbnail. Fast input-seek by default; accurate=True for a frame-exact grab."""
+    return VideoToolkit.thumbnail(input_path, output, timestamp, accurate)
+
+
+@mcp.tool(name="video_crop", tags={"video"})
+def video_crop(input_path: str, output: str, width: int, height: int, x: int = 0, y: int = 0) -> str:
+    """Crop a video to a rectangle (width x height, offset x,y)."""
+    return VideoToolkit.crop(input_path, output, width, height, x, y)
+
+
+@mcp.tool(name="video_rotate", tags={"video"})
+def video_rotate(input_path: str, output: str, angle: int = 90) -> str:
+    """Rotate a video by 90, 180, or 270 degrees clockwise."""
+    return VideoToolkit.rotate(input_path, output, angle)
+
+
+@mcp.tool(name="video_resize", tags={"video"})
+def video_resize(input_path: str, output: str, width: int, height: int = -2) -> str:
+    """Resize a video. Height -2 preserves aspect ratio (even dimensions)."""
+    return VideoToolkit.resize(input_path, output, width, height)
+
+
+@mcp.tool(name="video_watermark", tags={"video"})
+def video_watermark(
+    input_path: str,
+    watermark_path: str,
+    output: str,
+    position: str = "bottom-right",
+    margin: int = 10,
+) -> str:
+    """Overlay an image watermark onto a video."""
+    return VideoToolkit.watermark(input_path, watermark_path, output, position, margin)
+
+
+@mcp.tool(name="video_reverse", tags={"video"})
+def video_reverse(input_path: str, output: str) -> str:
+    """Reverse a video (and its audio) — loads the full clip into memory."""
+    return VideoToolkit.reverse(input_path, output)
+
+
+@mcp.tool(name="video_speed", tags={"video"})
+def video_speed(input_path: str, output: str, factor: float = 2.0) -> str:
+    """Change video playback speed. factor > 1 speeds up, < 1 slows down."""
+    return VideoToolkit.speed(input_path, output, factor)
+
+
+@mcp.tool(name="video_subtitle_burn", tags={"video"})
+def video_subtitle_burn(input_path: str, subtitle_path: str, output: str, preset: str = "plain") -> str:
+    """Burn an .srt/.ass subtitle file into the video. preset: plain, karaoke, or social."""
+    return VideoToolkit.subtitle_burn(input_path, subtitle_path, output, preset)
+
+
+@mcp.tool(name="gif_to_mp4", tags={"video"})
+def gif_to_mp4(input_path: str, output: str) -> str:
+    """Convert a GIF (or any silent looping input) to MP4 (h264 + yuv420p + faststart)."""
+    return VideoToolkit.gif_to_mp4(input_path, output)
+
+
 @mcp.tool(name="image_convert", tags={"image"})
 def image_convert(input_path: str, output: str, quality: int = 85) -> str:
     """Convert an image to another format (extension determines format)."""
@@ -290,6 +432,106 @@ def image_remove_background(input_path: str, output: str, alpha_matting: bool = 
     return ImageToolkit.remove_background(input_path, output, alpha_matting)
 
 
+@mcp.tool(name="image_rotate", tags={"image"})
+def image_rotate(input_path: str, output: str, angle: int = 90) -> str:
+    """Rotate an image by 90, 180, or 270 degrees."""
+    return ImageToolkit.rotate(input_path, output, angle)
+
+
+@mcp.tool(name="image_flip", tags={"image"})
+def image_flip(input_path: str, output: str, direction: str = "horizontal") -> str:
+    """Flip an image horizontally or vertically."""
+    return ImageToolkit.flip(input_path, output, direction)
+
+
+@mcp.tool(name="image_text", tags={"image"})
+def image_text(
+    input_path: str,
+    output: str,
+    text: str,
+    position: str = "bottom-right",
+    font_size: int = 24,
+    color: str = "#ffffff",
+    stroke_color: str = "#000000",
+    stroke_width: int = 2,
+    margin: int = 10,
+) -> str:
+    """Add a text overlay to an image."""
+    return ImageToolkit.text_overlay(
+        input_path, output, text, position, font_size, color, stroke_color, stroke_width, margin
+    )
+
+
+@mcp.tool(name="image_border", tags={"image"})
+def image_border(input_path: str, output: str, width: int = 10, color: str = "#ffffff") -> str:
+    """Add a border/frame to an image."""
+    return ImageToolkit.border(input_path, output, width, color)
+
+
+@mcp.tool(name="image_merge", tags={"image"})
+def image_merge(input_paths: list[str], output: str, direction: str = "horizontal") -> str:
+    """Merge images side-by-side (horizontal) or stacked (vertical)."""
+    return ImageToolkit.merge(input_paths, output, direction)
+
+
+@mcp.tool(name="image_watermark", tags={"image"})
+def image_watermark(
+    input_path: str,
+    watermark_path: str,
+    output: str,
+    position: str = "bottom-right",
+    margin: int = 10,
+    opacity: float = 1.0,
+) -> str:
+    """Overlay a watermark image onto another image."""
+    return ImageToolkit.watermark(input_path, watermark_path, output, position, margin, opacity)
+
+
+@mcp.tool(name="image_apply_brand", tags={"image"})
+def image_apply_brand(
+    input_path: str,
+    output: str,
+    font_path: str | None = None,
+    color: str | None = None,
+    logo_path: str | None = None,
+    logo_position: str = "bottom-right",
+    logo_scale: float = 0.15,
+) -> str:
+    """Apply an offline brand kit: optional color band + logo corner paste."""
+    return ImageToolkit.apply_brand_kit(input_path, output, font_path, color, logo_path, logo_position, logo_scale)
+
+
+@mcp.tool(name="image_collage", tags={"image"})
+def image_collage(
+    input_paths: list[str],
+    output: str,
+    columns: int = 2,
+    cell_size: int = 300,
+    spacing: int = 5,
+    background: str = "#ffffff",
+) -> str:
+    """Arrange images into a fixed-size grid collage."""
+    return ImageToolkit.collage(input_paths, output, columns, cell_size, spacing, background)
+
+
+@mcp.tool(name="image_blur", tags={"image"})
+def image_blur(input_path: str, output: str, radius: float = 5.0) -> str:
+    """Apply a Gaussian blur filter to an image."""
+    return ImageToolkit.blur(input_path, output, radius)
+
+
+@mcp.tool(name="image_export_social_pack", tags={"image"})
+def image_export_social_pack(src: str, out_dir: str, mode: str = "center-crop") -> str:
+    """Export 9:16 / 1:1 / 16:9 image variants. mode: center-crop or letterbox. Never upscales."""
+    return ImageToolkit.export_social_pack(src, out_dir, mode)
+
+
+@mcp.tool(name="image_ocr", tags={"image"})
+def image_ocr(input_path: str) -> str:
+    """Extract text from an image using Tesseract OCR."""
+    return ImageToolkit.ocr(input_path)
+
+
 @mcp.tool(name="audio_convert", tags={"audio"})
 def audio_convert(input_path: str, output: str, bitrate: str = "192k") -> str:
     """Convert audio between formats (extension determines format)."""
@@ -318,6 +560,63 @@ def audio_speed(input_path: str, output: str, factor: float = 1.5) -> str:
 def audio_info(input_path: str) -> str:
     """Get audio metadata: duration, channels, sample rate, file size."""
     return AudioToolkit.info(input_path)
+
+
+@mcp.tool(name="audio_merge", tags={"audio"})
+def audio_merge(input_paths: list[str], output: str) -> str:
+    """Concatenate multiple audio clips in order."""
+    return AudioToolkit.merge(input_paths, output)
+
+
+@mcp.tool(name="audio_normalize", tags={"audio"})
+def audio_normalize(input_path: str, output: str, target_dbfs: float = -20.0) -> str:
+    """Normalize audio volume to a target dBFS level."""
+    return AudioToolkit.normalize(input_path, output, target_dbfs)
+
+
+@mcp.tool(name="audio_chunk_silence", tags={"audio"})
+def audio_chunk_silence(
+    input_path: str,
+    output_dir: str,
+    min_silence_ms: int = 1000,
+    silence_thresh_dbfs: float | None = None,
+    keep_ms: int = 200,
+) -> str:
+    """Split audio on silence into bite-size clips sized for small-model transcribe windows."""
+    return AudioToolkit.chunk_silence(input_path, output_dir, min_silence_ms, silence_thresh_dbfs, keep_ms)
+
+
+@mcp.tool(name="audio_transcribe", tags={"audio"})
+def audio_transcribe(
+    input_path: str,
+    output: str | None = None,
+    model: str | None = None,
+    language: str | None = None,
+) -> str:
+    """Transcribe speech to text via the local LiteLLM proxy (whisper)."""
+    return AudioToolkit.transcribe(input_path, output, model, language)
+
+
+@mcp.tool(name="audio_transcribe_chunks", tags={"audio"})
+def audio_transcribe_chunks(
+    input_path: str,
+    out_dir: str,
+    model: str | None = None,
+    language: str | None = None,
+    min_silence_ms: int = 1000,
+    silence_thresh_dbfs: float | None = None,
+    keep_ms: int = 200,
+) -> str:
+    """Chunk audio on silence, transcribe each chunk in order, reassemble one transcript."""
+    return AudioToolkit.transcribe_chunks(
+        input_path, out_dir, model, language, min_silence_ms, silence_thresh_dbfs, keep_ms
+    )
+
+
+@mcp.tool(name="audio_pad_to_duration", tags={"audio"})
+def audio_pad_to_duration(input_path: str, output: str, target_ms: int, position: str = "end") -> str:
+    """Pad audio with generated silence to reach exactly target_ms. No time-stretching."""
+    return AudioToolkit.pad_to_duration(input_path, output, target_ms, position)
 
 
 @mcp.tool(name="office_to_markdown", tags={"office"})
@@ -381,6 +680,22 @@ def audio_to_video(input_path: str, video_path: str, output: str) -> str:
     return VideoToolkit.audio_to_video(input_path, video_path, output)
 
 
+# === PII ===
+
+
+@mcp.tool(name="pii_scan", tags={"pii"})
+def pii_scan(input_path: str) -> str:
+    """Find Spanish/EU PII (DNI/NIF, NIE, passport, IBAN, email, phone) in a PDF or text file.
+    Returns counts and masked previews, never raw values."""
+    return PiiToolkit.scan(input_path)
+
+
+@mcp.tool(name="pii_redact", tags={"pii"})
+def pii_redact(input_path: str, output: str) -> str:
+    """Find PII in a PDF and black it out (pages with hits become image-only)."""
+    return PiiToolkit.redact(input_path, output)
+
+
 # === PDF Redaction ===
 
 
@@ -399,6 +714,45 @@ def pdf_redact(
     from media_tools.tools.pdf import PDFToolkit
 
     return PDFToolkit.redact(input_path, output, text_patterns, rect_areas)
+
+
+@mcp.tool(name="pdf_salvage", tags={"pdf"})
+def pdf_salvage(
+    input_path: str,
+    out_dir: str,
+    ocr_fallback: bool = True,
+    dpi: int = 150,
+) -> str:
+    """Salvage readable text/images per page from a corrupt PDF into out_dir (one bad page never fails the job)."""
+    from media_tools.tools.pdf import PDFToolkit
+
+    return PDFToolkit.salvage(input_path, out_dir, ocr_fallback, dpi)
+
+
+# === Batch ===
+
+
+@mcp.tool(name="batch_sweep", tags={"batch"})
+def batch_sweep(input_dir: str, output_dir: str, op: str, pattern: str = "*", max_files: int = 200) -> str:
+    """Apply one op across every matching file in a folder, outputs under output_dir (never in place).
+
+    op: one of pdf_compress, image_convert, image_compress, audio_convert, video_compress.
+    Records per-file ok/error/skipped, continues past errors, writes sweep_manifest.json.
+    """
+    from media_tools.sweep import sweep
+
+    return sweep(input_dir, output_dir, op, pattern, max_files)
+
+
+# === Returns (originals stash) ===
+
+
+@mcp.tool(name="returns_reclaim", tags={"pdf"})
+def returns_reclaim(ticket_id: str, output: str | None = None) -> str:
+    """Restore a stashed original by ticket ID (see pdf_delete_pages / pdf_redact output)."""
+    from media_tools.utils import returns_reclaim as _reclaim
+
+    return _reclaim(ticket_id, output)
 
 
 # === AI-Powered Document Tools ===
@@ -458,6 +812,12 @@ def text_to_speech(
 
 
 def main():
+    if os.environ.get("MEDIA_TOOLS_SEARCH") == "1":
+        # 85 tools ≈ 13.7k tokens in tools/list; this exposes search_tools + call_tool (≈330).
+        # ceiling: BM25 is lexical, so vague queries miss; swap for a vector transform if that bites.
+        from fastmcp.server.transforms.search import BM25SearchTransform
+
+        mcp.add_transform(BM25SearchTransform(max_results=5))
     port = int(os.environ.get("PORT", "8020"))
     mcp.run(transport="streamable-http", port=port)
 
@@ -494,6 +854,10 @@ def main_ai():
 
 def main_tts():
     _run_scoped("tts")
+
+
+def main_batch():
+    _run_scoped("batch")
 
 
 if __name__ == "__main__":
