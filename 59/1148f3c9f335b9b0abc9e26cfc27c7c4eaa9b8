@@ -1,0 +1,21 @@
+pyproject.toml
+  s_5866f6daaecbee::t_7c4702bfd4b83e 10
+CHANGELOG.md
+  s_5866f6daaecbee::t_7e824d0f824d85 5-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "591148f3c9f335b9b0abc9e26cfc27c7c4eaa9b8",
+  "prompts": {},
+  "sessions": {
+    "s_5866f6daaecbee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_f407596b4ffeVWNtd9VDd33JMA",
+        "model": "unknown"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
