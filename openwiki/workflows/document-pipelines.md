@@ -5,9 +5,6 @@ type: Concept
 title: Document & Multimedia Pipelines
 description: Cross-tool workflows that chain the document stack (PDF/image → anydoc or Firecrawl → LLM summarize/QA/translate), text-to-speech through the local LiteLLM proxy (Kokoro), and multimedia pipelines (video→GIF, image slideshow, frame extraction). Covers entry points, control flow, configuration, failure modes, and invariants.
 tags: [document-pipeline, tts, multimedia, anydoc, firecrawl, litellm, kokoro, pdf, mcp, cli]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-19T19:14:37.934Z
 sources:
   - id: openwiki-source-a032591a12d56d656efb799c
     resource: repo://src/media_tools/server.py
@@ -92,7 +89,7 @@ sequenceDiagram
 | `LITELLM_URL` | `http://localhost:4000` | `AIToolkit`, `TTSToolkit` | Proxy base URL. AI uses it directly; TTS appends `/v1/audio/speech`. |
 | `LLM_MODEL` | `local-gemma4-e4b-vision` | `AIToolkit` | Model name sent to the proxy for summarize/QA/translate. |
 | `TTS_MODEL` | `local-kokoro-tts` | `TTSToolkit` | Model name sent to the proxy for TTS. |
-| `LITELLM_API_KEY` | `sk-no-key-required` | `AIToolkit`, `TTSToolkit` | Bearer token. The proxy rejects this fallback with `401`; set a real key (`export LITELLM_API_KEY=$(pass litellm/keys/jrodeiro-cli)`). |
+| `LITELLM_API_KEY` | `sk-no-key-required` | `AIToolkit`, `TTSToolkit` | Bearer token. The proxy rejects this fallback with `401`; set a real key (`export LITELLM_API_KEY=$(pass <your-litellm-key>)`). |
 | `FIRECRAWL_API_KEY` | *(none)* | `PDFToolkit.pdf_to_markdown` | Firecrawl API key; **required** or the method returns an error before any request. |
 
 ### Per-tool prompts

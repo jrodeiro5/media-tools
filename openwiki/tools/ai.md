@@ -14,10 +14,7 @@ openwiki:
   test_paths: []
   invariants: [Reads document via anydoc.to_markdown, then calls LLM through LITELLM_URL; no CLI commands exist.]
   validation_commands: ["media-tools-server-ai"]
-generated: { by: "openwiki/0.5.2", at: "2026-09-19T19:14:37.934Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-19T19:14:37.934Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-20T15:47:08.433Z" }
 sources:
   - id: openwiki-source-a032591a12d56d656efb799c
     resource: repo://src/media_tools/server.py
@@ -25,6 +22,9 @@ sources:
     resource: repo://src/media_tools/tools/__init__.py
   - id: openwiki-source-4c98e0114ea62b3994f0a92a
     resource: repo://src/media_tools/tools/ai.py
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-20T15:47:08.433Z
 ---
 
 ## Overview
@@ -55,7 +55,7 @@ The three tools share one two-stage flow — **read → ask** — and one error 
 |----------|---------|---------|
 | `LITELLM_URL` | `http://localhost:4000` | LiteLLM proxy base URL |
 | `LLM_MODEL` | `local-gemma4-e4b-vision` | Model name sent to the proxy |
-| `LITELLM_API_KEY` | `sk-no-key-required` (code fallback, rejected with 401) | Bearer token. The proxy requires a real key: `export LITELLM_API_KEY=$(pass litellm/keys/jrodeiro-cli)` |
+| `LITELLM_API_KEY` | `sk-no-key-required` (code fallback, rejected with 401) | Bearer token. The proxy requires a real key: `export LITELLM_API_KEY=$(pass <your-litellm-key>)` |
 
 ### Flow
 
@@ -112,6 +112,6 @@ Each handler is a thin `@mcp.tool(name=..., tags={"ai"})` wrapper that imports `
 ## See Also
 
 - [Architecture Overview](/openwiki/architecture/overview.md) — how AI tools are exposed via the `ai`-tagged server (`media-tools-server-ai`)
-- [Office Tools](/openwiki/tools/office.md) — also converts documents to Markdown (via MarkItDown)
+- [Office Tools](/openwiki/tools/office.md) — also converts documents to Markdown (via firecrawl-anydoc/anydoc)
 - [Text-to-Speech](/openwiki/tools/tts.md) — also uses the LiteLLM proxy
 - [Operations & Deployment](/openwiki/operations/deployment.md) — dev tooling and server configuration

@@ -955,13 +955,15 @@ def main():
 
         mcp.add_transform(BM25SearchTransform(max_results=5))
     port = int(os.environ.get("PORT", "8020"))
-    mcp.run(transport="streamable-http", port=port)
+    host = os.environ.get("HOST", "127.0.0.1")
+    mcp.run(transport="streamable-http", host=host, port=port)
 
 
 def _run_scoped(tag: str):
     mcp.enable(tags={tag}, only=True)
     port = int(os.environ.get("PORT", "8020"))
-    mcp.run(transport="streamable-http", port=port)
+    host = os.environ.get("HOST", "127.0.0.1")
+    mcp.run(transport="streamable-http", host=host, port=port)
 
 
 def main_pdf():

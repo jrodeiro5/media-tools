@@ -15,9 +15,6 @@ openwiki:
   invariants: [Endpoint is built from LITELLM_URL env var, not from any tool argument; no API key or network egress required.]
   validation_commands: ["media-tools-server-tts"]
 generated: { by: "openwiki/0.5.2", at: "2026-09-19T19:14:37.934Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-19T19:14:37.934Z
 sources:
   - id: openwiki-source-05ccef8d4cf1698187f20464
     resource: repo://pyproject.toml
@@ -45,7 +42,7 @@ The `TTSToolkit` class provides a single text-to-speech operation exposed **only
 |----------|---------|---------|
 | `LITELLM_URL` | `http://localhost:4000` | LiteLLM proxy base URL (endpoint = `{base}/v1/audio/speech`) |
 | `TTS_MODEL` | `local-kokoro-tts` | Model name sent to the proxy |
-| `LITELLM_API_KEY` | `sk-no-key-required` (code fallback, rejected with 401) | Bearer token. The proxy requires a real key: `export LITELLM_API_KEY=$(pass litellm/keys/jrodeiro-cli)` |
+| `LITELLM_API_KEY` | `sk-no-key-required` (code fallback, rejected with 401) | Bearer token. The proxy requires a real key: `export LITELLM_API_KEY=$(pass <your-litellm-key>)` |
 
 ### Arguments
 

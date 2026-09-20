@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 packages = ["src/media_tools"]
 
 [project]
-name = "media-tools"
+name = "media-tools-mcp"
 version = "0.2.0"
 description = "MCP server with 100+ local multimedia tools (PDF, video, image, audio, office docs, PII redaction)"
 readme = "README.md"
