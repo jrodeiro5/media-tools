@@ -1,3 +1,22 @@
+# media-tools
+
+MCP server (FastMCP, streamable-http, no stdio) plus a homegrown argparse CLI over the same toolkits: PDF, image, audio, video, Office, PII, AI, TTS, batch sweep. 90 tools; `src/media_tools/tools/*.py` hold the toolkits, `server.py` registers them (tagged by family), `cli.py` mirrors most of them.
+
+## Commands
+
+- Setup: `uv sync --group dev` (add `--extra pii` for Presidio). Run: `uv run media-tools-server` (`PORT`, default 8020); scoped: `media-tools-server-{pdf,image,audio,video,office,ai,tts}`.
+- `MEDIA_TOOLS_SEARCH=1` exposes only `search_tools` + `call_tool` (BM25) instead of all tools.
+- Checks: `uvx pre-commit run --all-files` (ruff, mypy, bandit, semgrep, gitleaks). Tests are assert scripts, no pytest: `.venv/bin/python tests/check_*.py`.
+
+## Rules
+
+- Local-first: files never leave the machine. The one exception is `url_to_markdown` (Firecrawl cloud, `FIRECRAWL_API_KEY` from the environment, never a literal key). Keep new tools local unless flagged like that.
+- Never edit in place: outputs go to a new path (`office_edit`, `batch_sweep`, `returns_reclaim` all refuse to overwrite).
+- External binaries, not Python deps: ffmpeg, tesseract, LibreOffice (`soffice`), `officecli` (`brew install officecli`), `firecrawl` CLI. Tools return `Error: ...` strings when one is missing.
+- A new tool needs: toolkit method, `@mcp.tool` in `server.py` with a family tag, a CLI command if it fits, a README table row, and one `tests/check_*.py` assert.
+- Don't weaken bandit/mypy config to pass hooks; fix the code. `pdf2docx` pulls PyMuPDF (AGPL-3.0).
+- `AGENTS.md` and `CLAUDE.md` are one file (`CLAUDE.md` is a git symlink to `AGENTS.md`); edit either, never split them. Keep this section above the generated blocks below.
+
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
