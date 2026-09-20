@@ -1,0 +1,25 @@
+Dockerfile
+  s_5866f6daaecbee::t_aae6e52df17ca4 1
+.agents/skills/media-tools/SKILL.md
+  s_5866f6daaecbee::t_64df804aad6fa0 1-31
+.agents/skills/media-video/SKILL.md
+  s_5866f6daaecbee::t_57b2ebdf2cff26 1-26
+.agents/skills/media-pdf/SKILL.md
+  s_5866f6daaecbee::t_0382f010f20ef0 1-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "27695235ab5f320c9256fa2316cda9f55a3ff697",
+  "prompts": {},
+  "sessions": {
+    "s_5866f6daaecbee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_f407596b4ffeVWNtd9VDd33JMA",
+        "model": "unknown"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
