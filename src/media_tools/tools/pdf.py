@@ -3,16 +3,21 @@
 from __future__ import annotations
 
 import io
-import os
-import subprocess
 from pathlib import Path
 from typing import Any
 
+import anydoc
 import pdfplumber
 import pypdf
 import pypdfium2 as pdfium
 
-from media_tools.utils import _subprocess_with_logging, logger, validate_input, validate_output_dir
+from media_tools.utils import (
+    _subprocess_with_logging,
+    logger,
+    stash_return,
+    validate_input,
+    validate_output_dir,
+)
 
 try:
     import liteparse
@@ -22,12 +27,37 @@ except ImportError:
     HAS_LITEPARSE = False
 
 
+def _render_cover(pdf_path: str, cover_path: str, dpi: int = 72) -> str | None:
+    """Render page 1 of a PDF to a PNG cover thumbnail.
+
+    Shared by merge/split cover flags. Returns an error string on failure,
+    else None (cover written to cover_path).
+    """
+    try:
+        doc = pdfium.PdfDocument(pdf_path)
+        try:
+            img = doc[0].render(scale=dpi / 72).to_pil()
+            img.save(cover_path)
+        finally:
+            doc.close()
+    except Exception as exc:
+        logger.error("cover render failed: %s", exc)
+        return str(exc)
+    logger.info("Cover → %s", cover_path)
+    return None
+
+
 class PDFToolkit:
     name = "pdf"
 
     @staticmethod
-    def merge(files: list[str], output: str) -> str:
-        """Merge multiple PDF files into one."""
+    def merge(files: list[str], output: str, cover: bool = False) -> str:
+        """Merge multiple PDF files into one.
+
+        cover: when True, also render page 1 at 72 dpi
+        (`<output-stem>_cover.png` next to the output) and return a JSON
+        string with its path. Default False = plain-text return, unchanged.
+        """
         for f in files:
             err = validate_input(f)
             if err:
@@ -47,11 +77,28 @@ class PDFToolkit:
             logger.error("merge failed: %s", exc)
             return f"Error: {exc}"
 
-        return f"Merged {len(files)} files into {output}"
+        if not cover:
+            return f"Merged {len(files)} files into {output}"
+        cover_path = str(Path(output).with_name(f"{Path(output).stem}_cover.png"))
+        cover_err = _render_cover(output, cover_path)
+        if cover_err:
+            import json
+
+            return json.dumps(
+                {"result": f"Merged {len(files)} files into {output}", "output": output, "cover_error": cover_err}
+            )
+        import json
+
+        return json.dumps({"result": f"Merged {len(files)} files into {output}", "output": output, "cover": cover_path})
 
     @staticmethod
-    def split(input_path: str, pages: str, output_dir: str) -> str:
-        """Split a PDF. pages: ranges like '1-3,5,7-9' (1-indexed)."""
+    def split(input_path: str, pages: str, output_dir: str, cover: bool = False) -> str:
+        """Split a PDF. pages: ranges like '1-3,5,7-9' (1-indexed).
+
+        cover: when True, also render page 1 of each split file at 72 dpi
+        (`<split-stem>_cover.png` next to it) and return a JSON string with
+        the file/cover lists. Default False = plain-text return, unchanged.
+        """
         err = validate_input(input_path)
         if err:
             return err
@@ -88,7 +135,30 @@ class PDFToolkit:
                 results.append(str(out_path))
 
             logger.info("Split %s into %d files", input_path, len(results))
-            return f"Split into {len(results)} files: {', '.join(results)}"
+            if not cover:
+                return f"Split into {len(results)} files: {', '.join(results)}"
+            import json
+
+            covers = []
+            for r in results:
+                cover_path = str(Path(r).with_name(f"{Path(r).stem}_cover.png"))
+                cover_err = _render_cover(r, cover_path)
+                if cover_err:
+                    return json.dumps(
+                        {
+                            "result": f"Split into {len(results)} files: {', '.join(results)}",
+                            "files": results,
+                            "cover_error": cover_err,
+                        }
+                    )
+                covers.append(cover_path)
+            return json.dumps(
+                {
+                    "result": f"Split into {len(results)} files: {', '.join(results)}",
+                    "files": results,
+                    "covers": covers,
+                }
+            )
         except Exception as exc:
             logger.error("split failed: %s", exc)
             return f"Error: {exc}"
@@ -205,6 +275,173 @@ class PDFToolkit:
         except Exception as exc:
             logger.error("ocr failed: %s", exc)
             return f"Error: {exc}"
+
+    @staticmethod
+    def salvage(input_path: str, out_dir: str, ocr_fallback: bool = True, dpi: int = 150) -> str:
+        """Salvage readable content from a corrupt/malformed PDF, per page.
+
+        Probes the page count defensively (pdfplumber, then pypdf, then
+        pdfium — whatever opens it), then loops pages 1..N each in its own
+        try/except so one bad page never aborts the job. Per page: (a)
+        pdfplumber text, (b) pdfium render-to-PNG, (c) pytesseract OCR on
+        the render when there is no text and ocr_fallback is set.
+        Writes page_%04d.txt (only when non-empty), page_%04d.png, and
+        salvage_manifest.json. Read-only on the input; no repair attempted.
+        """
+        import json
+        import shutil
+        import tempfile
+
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(out_dir)
+        if err:
+            return err
+
+        total = 0
+        probe_errors: list[str] = []
+        for probe in ("pdfplumber", "pypdf", "pdfium"):
+            try:
+                if probe == "pdfplumber":
+                    with pdfplumber.open(input_path) as pdf:
+                        total = len(pdf.pages)
+                elif probe == "pypdf":
+                    total = len(pypdf.PdfReader(input_path).pages)
+                else:
+                    doc = pdfium.PdfDocument(input_path)
+                    try:
+                        total = len(doc)
+                    finally:
+                        doc.close()
+                break
+            except Exception as exc:
+                probe_errors.append(f"{probe}: {exc}")
+        if total <= 0:
+            logger.error("salvage failed: no reader could open %s", input_path)
+            return json.dumps(
+                {
+                    "out_dir": out_dir,
+                    "pages_total": 0,
+                    "pages_with_text": 0,
+                    "pages_with_images": 0,
+                    "pages_failed": 0,
+                    "error": f"could not determine page count ({'; '.join(probe_errors)})",
+                }
+            )
+
+        try:
+            plumber = pdfplumber.open(input_path)
+        except Exception as exc:
+            plumber = None
+            plumber_error = str(exc)
+        else:
+            plumber_error = ""
+        try:
+            doc = pdfium.PdfDocument(input_path)
+        except Exception as exc:
+            doc = None
+            pdfium_error = str(exc)
+        else:
+            pdfium_error = ""
+
+        ocr_available = True
+        try:
+            import pytesseract  # noqa: F401
+        except ImportError:
+            ocr_available = False
+
+        out_path = Path(out_dir)
+        out_path.mkdir(parents=True, exist_ok=True)
+        pages: list[dict[str, Any]] = []
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                for i in range(1, total + 1):
+                    entry: dict[str, Any] = {
+                        "page": i,
+                        "text_chars": 0,
+                        "image": None,
+                        "ocr_used": False,
+                        "errors": [],
+                    }
+                    text = ""
+                    if plumber is None:
+                        entry["errors"].append(f"text: pdfplumber open failed: {plumber_error}")
+                    else:
+                        try:
+                            text = plumber.pages[i - 1].extract_text() or ""
+                        except Exception as exc:
+                            entry["errors"].append(f"text: {exc}")
+                    img = None
+                    if doc is None:
+                        entry["errors"].append(f"render: pdfium open failed: {pdfium_error}")
+                    else:
+                        try:
+                            img = doc[i - 1].render(scale=dpi / 72).to_pil()
+                            tmp_png = str(Path(tmp) / f"page_{i:04d}.png")
+                            img.save(tmp_png)
+                            final_png = str(out_path / f"page_{i:04d}.png")
+                            shutil.copy(tmp_png, final_png)
+                            entry["image"] = final_png
+                        except Exception as exc:
+                            entry["errors"].append(f"render: {exc}")
+                            img = None
+                    if not text.strip() and ocr_fallback and img is not None:
+                        if not ocr_available:
+                            entry["errors"].append("ocr: pytesseract not installed")
+                        else:
+                            try:
+                                import pytesseract
+
+                                ocr_text = pytesseract.image_to_string(img).strip()
+                                if ocr_text:
+                                    text = ocr_text
+                                    entry["ocr_used"] = True
+                            except Exception as exc:
+                                entry["errors"].append(f"ocr: {exc}")
+                    if text.strip():
+                        (out_path / f"page_{i:04d}.txt").write_text(text, encoding="utf-8")
+                    entry["text_chars"] = len(text)
+                    pages.append(entry)
+        finally:
+            try:
+                if plumber is not None:
+                    plumber.close()
+            except Exception as exc:
+                logger.debug("plumber close failed: %s", exc)
+            try:
+                if doc is not None:
+                    doc.close()
+            except Exception as exc:
+                logger.debug("doc close failed: %s", exc)
+
+        with_text = sum(1 for p in pages if p["text_chars"] > 0)
+        with_images = sum(1 for p in pages if p["image"])
+        failed = sum(1 for p in pages if p["text_chars"] == 0 and not p["image"])
+        manifest = {
+            "input": input_path,
+            "out_dir": out_dir,
+            "pages_total": total,
+            "pages": pages,
+            "totals": {
+                "pages_with_text": with_text,
+                "pages_with_images": with_images,
+                "pages_failed": failed,
+            },
+        }
+        manifest_path = str(out_path / "salvage_manifest.json")
+        Path(manifest_path).write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+        logger.info("Salvaged %s → %s (%d/%d pages with text)", input_path, out_dir, with_text, total)
+        return json.dumps(
+            {
+                "out_dir": out_dir,
+                "pages_total": total,
+                "pages_with_text": with_text,
+                "pages_with_images": with_images,
+                "pages_failed": failed,
+                "manifest": manifest_path,
+            }
+        )
 
     @staticmethod
     def rotate(input_path: str, output: str, angle: int = 90) -> str:
@@ -661,6 +898,10 @@ class PDFToolkit:
         err = validate_output_dir(output)
         if err:
             return err
+        try:
+            ticket, stash_path = stash_return(input_path)
+        except OSError as exc:
+            return f"Error: could not stash original: {exc}"
 
         try:
             reader = pypdf.PdfReader(input_path)
@@ -684,7 +925,7 @@ class PDFToolkit:
             logger.error("delete_pages failed: %s", exc)
             return f"Error: {exc}"
 
-        return f"Pages deleted → {output}"
+        return f"Pages deleted → {output} (original stashed: ticket {ticket} at {stash_path})"
 
     @staticmethod
     def sign(
@@ -871,12 +1112,13 @@ class PDFToolkit:
         input_path: str,
         output: str | None = None,
         pages: list[int] | None = None,
-        api_key: str | None = None,
     ) -> str:
-        """Convert a PDF (or DOCX, HTML, XLSX) to Markdown using Firecrawl CLI.
+        """Convert a PDF (or DOCX, HTML, XLSX, ODT, RTF) to Markdown locally with anydoc.
 
-        Requires: npx firecrawl installed + FIRECRAWL_API_KEY env var.
-        Free tier: 500 requests/month.
+        No subprocess, no API key, no network — the file never leaves the machine.
+        `pages` is accepted for API compatibility but page filtering is not
+        supported by anydoc (`to_markdown` converts the whole document), so the
+        full document is always converted.
         """
         err = validate_input(input_path)
         if err:
@@ -886,58 +1128,257 @@ class PDFToolkit:
             if err:
                 return err
 
-        api_key = api_key or os.environ.get("FIRECRAWL_API_KEY")
-        if not api_key:
-            return "Error: FIRECRAWL_API_KEY not set. Get one at https://firecrawl.dev"
+        if pages:
+            logger.warning("Page filtering not supported by anydoc; converting whole document")
 
         try:
-            cmd = [
-                "npx",
-                "firecrawl",
-                "parse",
-                input_path,
-                "-f",
-                "markdown",
-                "-k",
-                api_key,
-            ]
+            markdown = anydoc.to_markdown(input_path)
 
-            if pages:
-                # Firecrawl CLI doesn't have a direct page filter,
-                # but we can note it for future support
-                logger.warning("Page filtering not yet supported by firecrawl parse CLI")
-
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=120,
-            )
-
-            if result.returncode == 0:
-                markdown = result.stdout.strip()
-                if output:
-                    Path(output).write_text(markdown, encoding="utf-8")
-                    logger.info("Fire-PDF → %s", output)
-                    return f"Markdown → {output} ({len(markdown)} chars)"
-                logger.info("Fire-PDF %d chars from %s", len(markdown), input_path)
-                return markdown
-
-            stderr = result.stderr.strip()
-            if "401" in stderr or "unauthorized" in stderr.lower():
-                return "Error: Invalid FIRECRAWL_API_KEY"
-            if "rate" in stderr.lower() or "limit" in stderr.lower():
-                return "Error: Firecrawl rate limit exceeded. Free tier: 500 req/month."
-            logger.error("Fire-PDF failed (rc=%d): %s", result.returncode, stderr)
-            return f"Fire-PDF error: {stderr or result.stderr}"
-
-        except subprocess.TimeoutExpired:
-            return "Error: Fire-PDF request timed out (120s limit)"
-        except FileNotFoundError:
-            return "Error: firecrawl CLI not found. Install with: npm install -g firecrawl"
+            if output:
+                Path(output).write_text(markdown, encoding="utf-8")
+                logger.info("PDF → Markdown %s", output)
+                return f"Markdown → {output} ({len(markdown)} chars)"
+            logger.info("PDF → Markdown %d chars from %s", len(markdown), input_path)
+            return markdown
+        except (anydoc.EncryptedError, anydoc.UnsupportedError) as exc:
+            logger.error("pdf_to_markdown failed: %s", exc)
+            return f"Error: {exc}"
+        except anydoc.ConvertError as exc:
+            logger.error("pdf_to_markdown failed: %s", exc)
+            return f"Error: {exc}"
         except Exception as exc:
             logger.error("pdf_to_markdown failed: %s", exc)
             return f"Error: {exc}"
+
+    @staticmethod
+    def md_to_branded_pdf(
+        input_path: str,
+        output: str,
+        font_path: str | None = None,
+        color: str | None = None,
+        logo_path: str | None = None,
+        logo_position: str = "bottom-right",
+        page_numbers: bool = True,
+    ) -> str:
+        """Convert a strict Markdown subset to a branded PDF (reportlab Platypus, offline).
+
+        Subset: H1-H3, paragraphs, bold/italic/inline-code, bullet/numbered lists,
+        fenced code, pipe tables, images, horizontal rules.
+        # Degradation (by design, not bugs): nested lists are flattened to top level;
+        # raw HTML tags are stripped; long tables split across pages (repeatRows=1);
+        # missing image files become an italic placeholder line instead of an error.
+        """
+        import re
+        from html import escape as _esc
+
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+        if logo_path:
+            err = validate_input(logo_path)
+            if err:
+                return err
+
+        try:
+            from reportlab.lib.colors import HexColor, white
+            from reportlab.lib.pagesizes import A4
+            from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+            from reportlab.lib.units import mm
+            from reportlab.pdfbase import pdfmetrics
+            from reportlab.pdfbase.ttfonts import TTFont
+            from reportlab.platypus import (
+                HRFlowable,
+                Paragraph,
+                Preformatted,
+                SimpleDocTemplate,
+                Spacer,
+                Table,
+                TableStyle,
+            )
+            from reportlab.platypus import (
+                Image as RLImage,
+            )
+
+            brand = HexColor(color) if color else HexColor("#222222")
+
+            body_font = "Helvetica"
+            if font_path:
+                ferr = validate_input(font_path)
+                if ferr:
+                    return ferr
+                pdfmetrics.registerFont(TTFont("BrandFont", font_path))
+                body_font = "BrandFont"
+
+            base = getSampleStyleSheet()
+            s_body = ParagraphStyle("BrandBody", parent=base["Normal"], fontName=body_font, fontSize=10)
+            s_h1 = ParagraphStyle("BrandH1", parent=base["Heading1"], fontName=body_font, textColor=brand, fontSize=20)
+            s_h2 = ParagraphStyle("BrandH2", parent=base["Heading2"], fontName=body_font, textColor=brand, fontSize=15)
+            s_h3 = ParagraphStyle("BrandH3", parent=base["Heading3"], fontName=body_font, textColor=brand, fontSize=12)
+            s_bullet = ParagraphStyle("BrandBullet", parent=s_body, leftIndent=18, bulletIndent=6, spaceBefore=1)
+            s_code = ParagraphStyle("BrandCode", parent=base["Code"], fontName="Courier", fontSize=9, leading=12)
+            s_caption = ParagraphStyle("BrandCaption", parent=s_body, textColor=HexColor("#666666"), fontSize=9)
+
+            tag_re = re.compile(r"<[^>]+>")
+
+            def clean(text: str) -> str:
+                text = tag_re.sub("", text.strip())
+                text = _esc(text, quote=False)
+                text = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", text)
+                text = re.sub(r"(?<!\w)\*(?!\s)(.+?)(?<!\s)\*(?!\w)", r"<i>\1</i>", text)
+                text = re.sub(r"`(.+?)`", r'<font face="Courier">\1</font>', text)
+                return text
+
+            text = Path(input_path).read_text(encoding="utf-8")
+            lines = text.splitlines()
+            story: list[Any] = []
+            i = 0
+            n = len(lines)
+            md_dir = Path(input_path).parent
+            img_re = re.compile(r"!\[(.*?)\]\((.*?)\)")
+
+            def flush_para(buf: list[str]) -> None:
+                if buf:
+                    story.append(Paragraph(clean(" ".join(b.strip() for b in buf)), s_body))
+                    story.append(Spacer(1, 4))
+                    buf.clear()
+
+            para: list[str] = []
+            in_code = False
+            code_buf: list[str] = []
+            while i < n:
+                line = lines[i]
+                if line.strip().startswith("```"):
+                    if in_code:
+                        story.append(Preformatted("\n".join(code_buf), s_code))
+                        story.append(Spacer(1, 6))
+                        code_buf.clear()
+                        in_code = False
+                    else:
+                        flush_para(para)
+                        in_code = True
+                    i += 1
+                    continue
+                if in_code:
+                    code_buf.append(line)
+                    i += 1
+                    continue
+                stripped = line.strip()
+                if not stripped:
+                    flush_para(para)
+                    i += 1
+                    continue
+                m = re.match(r"^(#{1,3})\s+(.*)$", stripped)
+                if m:
+                    flush_para(para)
+                    level = len(m.group(1))
+                    style = {1: s_h1, 2: s_h2, 3: s_h3}[level]
+                    story.append(Paragraph(clean(m.group(2)), style))
+                    story.append(Spacer(1, 6))
+                    i += 1
+                    continue
+                if re.match(r"^(\*\*\*|---|___)\s*$", stripped):
+                    flush_para(para)
+                    story.append(HRFlowable(width="100%", thickness=1, color=brand))
+                    story.append(Spacer(1, 6))
+                    i += 1
+                    continue
+                if stripped.startswith("|") and stripped.endswith("|"):
+                    flush_para(para)
+                    rows: list[list[str]] = []
+                    while i < n and lines[i].strip().startswith("|") and lines[i].strip().endswith("|"):
+                        cells = [c.strip() for c in lines[i].strip().strip("|").split("|")]
+                        if not all(re.match(r"^:?-{3,}:?$", c) for c in cells):
+                            rows.append(cells)
+                        i += 1
+                    if rows:
+                        data = [[Paragraph(clean(c), s_body) for c in row] for row in rows]
+                        t = Table(data, repeatRows=1)
+                        t.setStyle(
+                            TableStyle(
+                                [
+                                    ("BACKGROUND", (0, 0), (-1, 0), brand),
+                                    ("TEXTCOLOR", (0, 0), (-1, 0), white),
+                                    ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#999999")),
+                                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                                ]
+                            )
+                        )
+                        story.append(t)
+                        story.append(Spacer(1, 6))
+                    continue
+                m = img_re.search(stripped)
+                if m and stripped.startswith("!"):
+                    flush_para(para)
+                    alt, src = m.group(1), m.group(2)
+                    img_file = md_dir / src if not Path(src).is_absolute() else Path(src)
+                    if img_file.exists():
+                        story.append(RLImage(str(img_file), width=150 * mm, height=100 * mm))
+                        if alt:
+                            story.append(Paragraph(clean(alt), s_caption))
+                    else:
+                        story.append(Paragraph(f"<i>[image missing: {_esc(src, quote=False)}]</i>", s_body))
+                    story.append(Spacer(1, 6))
+                    i += 1
+                    continue
+                m = re.match(r"^\s*([-*+]|\d+[.)])\s+(.*)$", line)
+                if m:
+                    flush_para(para)
+                    marker, content = m.group(1), m.group(2)
+                    bullet = "•" if re.match(r"[-*+]", marker) else marker
+                    story.append(Paragraph(clean(content), s_bullet, bulletText=bullet))
+                    i += 1
+                    continue
+                para.append(line)
+                i += 1
+            flush_para(para)
+
+            logo_info: dict[str, Any] = {}
+            if logo_path:
+                from reportlab.lib.utils import ImageReader
+
+                iw, ih = ImageReader(logo_path).getSize()
+                target_h = 14 * mm
+                logo_info = {
+                    "path": logo_path,
+                    "w": target_h * iw / ih,
+                    "h": target_h,
+                    "position": logo_position,
+                }
+
+            def header_footer(canv: Any, doc: Any) -> None:
+                canv.saveState()
+                pw, ph = A4
+                if page_numbers:
+                    canv.setFont("Helvetica", 9)
+                    canv.drawCentredString(pw / 2, 12 * mm, f"Page {doc.page}")
+                if logo_info:
+                    lw, lh = logo_info["w"], logo_info["h"]
+                    pos = logo_info["position"]
+                    margin = 12 * mm
+                    if pos == "top-left":
+                        x, y = margin, ph - lh - margin
+                    elif pos == "top-right":
+                        x, y = pw - lw - margin, ph - lh - margin
+                    elif pos == "bottom-left":
+                        x, y = margin, margin
+                    elif pos == "center":
+                        x, y = (pw - lw) / 2, (ph - lh) / 2
+                    else:
+                        x, y = pw - lw - margin, margin
+                    canv.drawImage(logo_info["path"], x, y, width=lw, height=lh, mask="auto")
+                canv.restoreState()
+
+            doc_tpl = SimpleDocTemplate(output, pagesize=A4)
+            doc_tpl.build(story, onFirstPage=header_footer, onLaterPages=header_footer)
+            logger.info("Markdown → branded PDF → %s", output)
+        except Exception as exc:
+            logger.error("md_to_branded_pdf failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Markdown → branded PDF → {output}"
 
     @staticmethod
     def to_docx(input_path: str, output: str) -> str:
@@ -984,6 +1425,10 @@ class PDFToolkit:
         err = validate_output_dir(output)
         if err:
             return err
+        try:
+            ticket, stash_path = stash_return(input_path)
+        except OSError as exc:
+            return f"Error: could not stash original: {exc}"
 
         try:
             import pypdf
@@ -1031,7 +1476,108 @@ class PDFToolkit:
             with open(output, "wb") as f:
                 writer.write(f)
             logger.info("Redacted PDF → %s", output)
-            return f"Redacted PDF → {output}"
+            return f"Redacted PDF → {output} (original stashed: ticket {ticket} at {stash_path})"
         except Exception as exc:
             logger.error("redact failed: %s", exc)
+            return f"Error: {exc}"
+
+    @staticmethod
+    def extract_tables(
+        input_path: str,
+        output_dir: str,
+        pages: list[int] | None = None,
+    ) -> str:
+        """Dump raw PDF tables to CSV files, one file per table.
+
+        pages: optional list of 1-indexed page numbers (None = all pages).
+        Per page, tries both line-based (default) and text-based strategies
+        and keeps whichever yields more cells. Pages with no tables are
+        skipped silently. Returns a JSON string, not an error, even when
+        no tables are found anywhere.
+        """
+        import csv
+        import json
+
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output_dir)
+        if err:
+            return err
+
+        try:
+            out_dir = Path(output_dir)
+            out_dir.mkdir(parents=True, exist_ok=True)
+
+            def _cells(tables: list[Any]) -> int:
+                return sum(len(row) for t in tables for row in t)
+
+            files: list[str] = []
+            tables_info: list[dict[str, Any]] = []
+            skipped: list[int] = []
+            with pdfplumber.open(input_path) as pdf:
+                total = len(pdf.pages)
+                wanted = sorted(p for p in (pages or range(1, total + 1)) if 1 <= p <= total)
+                for page_no in wanted:
+                    page = pdf.pages[page_no - 1]
+                    lined = page.extract_tables() or []
+                    try:
+                        texted = (
+                            page.extract_tables(
+                                {
+                                    "vertical_strategy": "text",
+                                    "horizontal_strategy": "text",
+                                }
+                            )
+                            or []
+                        )
+                    except Exception:
+                        texted = []
+                    tables = texted if _cells(texted) > _cells(lined) else lined
+                    # Drop fully empty tables; normalize None → "".
+                    tables = [
+                        [[c if c is not None else "" for c in row] for row in t]
+                        for t in tables
+                        if any(any(c not in (None, "") for c in row) for row in t)
+                    ]
+                    if not tables:
+                        skipped.append(page_no)
+                        continue
+                    for i, table in enumerate(tables, start=1):
+                        out_path = out_dir / f"page{page_no}_table{i}.csv"
+                        # Plain UTF-8, no BOM: agents consume the CSVs as text.
+                        with open(out_path, "w", newline="", encoding="utf-8") as f:
+                            csv.writer(f).writerows(table)
+                        files.append(str(out_path))
+                        tables_info.append(
+                            {
+                                "file": str(out_path),
+                                "page": page_no,
+                                "table": i,
+                                "rows": len(table),
+                                "cols": max(len(row) for row in table),
+                            }
+                        )
+
+            logger.info("Extracted %d tables → %s", len(files), output_dir)
+            if not files:
+                return json.dumps(
+                    {
+                        "message": f"No tables found in {input_path}",
+                        "files": [],
+                        "tables": [],
+                        "pages_skipped": skipped,
+                    },
+                    ensure_ascii=False,
+                )
+            return json.dumps(
+                {
+                    "files": files,
+                    "tables": tables_info,
+                    "pages_skipped": skipped,
+                },
+                ensure_ascii=False,
+            )
+        except Exception as exc:
+            logger.error("extract_tables failed: %s", exc)
             return f"Error: {exc}"

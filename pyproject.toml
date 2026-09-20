@@ -27,7 +27,6 @@ dependencies = [
     "rembg>=2.0.75",
     "liteparse>=2.11.1",
     "pdf2docx>=0.5.13",
-    "moviepy>=2.2.1",
     "opencv-python-headless>=5.0.0.93",
 ]
 
@@ -55,6 +54,11 @@ media-tools-server-office = "media_tools.server:main_office"
 media-tools-server-ai = "media_tools.server:main_ai"
 media-tools-server-tts = "media_tools.server:main_tts"
 
+[project.optional-dependencies]
+pii = [
+    "presidio-analyzer>=2.2.364",
+]
+
 [tool.ruff]
 line-length = 120
 target-version = "py311"
@@ -77,7 +81,7 @@ warn_unused_configs = true
 disallow_untyped_defs = false
 
 [[tool.mypy.overrides]]
-module = ["pytesseract", "reportlab.*", "moviepy", "moviepy.*", "cv2", "rembg", "anydoc", "pdf2docx", "liteparse", "pydub", "openai", "pypdfium2"]
+module = ["pytesseract", "reportlab.*", "cv2", "rembg", "anydoc", "pdf2docx", "liteparse", "pydub", "pydub.*", "openai", "pypdfium2"]
 ignore_missing_imports = true
 
 [tool.vulture]

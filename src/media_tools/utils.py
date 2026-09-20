@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 import os
+import secrets
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -74,6 +76,61 @@ def validate_output_dir(path: str, label: str = "output") -> str | None:
 def safe_basename(path: str) -> str:
     """Extract basename after stripping any parent components for safety."""
     return Path(path).name
+
+
+def stash_return(input_path: str, returns_dir: str = "_returns") -> tuple[str, str]:
+    """Copy the original into a `_returns/` stash dir. Copy, never move.
+
+    The stash dir defaults to `_returns/` next to the input file. The stashed
+    copy is named `<stem>__<ticket><suffix>` where ticket is 8 hex chars.
+    Returns (ticket_id, stash_path). Raises OSError if the copy fails —
+    callers must abort the destructive op in that case.
+    """
+    src = Path(input_path)
+    dest_dir = Path(returns_dir) if Path(returns_dir).is_absolute() else src.parent / returns_dir
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    ticket = secrets.token_hex(4)
+    dest = dest_dir / f"{src.stem}__{ticket}{src.suffix}"
+    shutil.copy2(str(src), str(dest))
+    logger.info("Stashed original %s → %s (ticket %s)", input_path, dest, ticket)
+    return ticket, str(dest)
+
+
+def returns_reclaim(ticket_or_path: str, output: str | None = None, search_dir: str = "_returns") -> str:
+    """Restore a stashed original by ticket ID or stash path. Copy, never move."""
+    candidate = Path(ticket_or_path)
+    if candidate.is_file():
+        stash = candidate
+    else:
+        base = Path(search_dir)
+        if not base.is_absolute():
+            base = Path.cwd() / base
+        matches = sorted(base.glob(f"*{ticket_or_path}*")) if base.is_dir() else []
+        files = [m for m in matches if m.is_file()]
+        if not files:
+            return f"Error: no stashed file matches ticket {ticket_or_path!r} in {base}"
+        stash = files[0]
+
+    if output:
+        err = validate_output_dir(output)
+        if err:
+            return err
+        dest = Path(output)
+    else:
+        # Original name = stem before the "__<ticket>" separator, same suffix.
+        stem = stash.stem
+        orig_stem = stem.split("__")[0] if "__" in stem else stem
+        dest = stash.parent.parent / f"{orig_stem}{stash.suffix}"
+        if dest.exists():
+            return f"Error: {dest} already exists; pass an output path to restore elsewhere or overwrite deliberately"
+
+    try:
+        shutil.copy2(str(stash), str(dest))
+    except OSError as exc:
+        logger.error("reclaim failed: %s", exc)
+        return f"Error: {exc}"
+    logger.info("Reclaimed %s → %s", stash, dest)
+    return f"Reclaimed → {dest} (from {stash})"
 
 
 def _subprocess_with_logging(cmd: list[str], description: str) -> tuple[str, bool]:

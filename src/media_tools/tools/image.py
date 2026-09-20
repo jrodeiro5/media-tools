@@ -423,6 +423,87 @@ class ImageToolkit:
         return f"Watermarked → {output}"
 
     @staticmethod
+    def apply_brand_kit(
+        input_path: str,
+        output: str,
+        font_path: str | None = None,
+        color: str | None = None,
+        logo_path: str | None = None,
+        logo_position: str = "bottom-right",
+        logo_scale: float = 0.15,
+    ) -> str:
+        """Apply an offline brand kit: optional color band + logo corner paste (PIL only).
+
+        font_path is accepted for API parity with md_to_branded_pdf; S7 draws no
+        text so it has no visual effect here.
+        """
+        import json
+
+        from PIL import ImageColor, ImageDraw
+
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+        if not color and not logo_path:
+            return "Error: specify color and/or logo_path"
+        if logo_path:
+            err = validate_input(logo_path)
+            if err:
+                return err
+        if not 0.0 < logo_scale <= 1.0:
+            return "Error: logo_scale must be between 0.0 and 1.0"
+
+        try:
+            applied: list[str] = []
+            img: Image.Image = Image.open(input_path).convert("RGBA")
+
+            if color:
+                try:
+                    rgb = ImageColor.getcolor(color, "RGB")
+                except ValueError:
+                    return f"Error: invalid color '{color}' (use #rrggbb)"
+                band_h = max(1, int(img.height * 0.08))
+                draw = ImageDraw.Draw(img)
+                draw.rectangle([0, img.height - band_h, img.width, img.height], fill=rgb)
+                applied.append(f"color_band:{color}")
+
+            if logo_path:
+                logo = Image.open(logo_path).convert("RGBA")
+                target_w = max(1, int(img.width * logo_scale))
+                ratio = target_w / logo.width
+                logo = logo.resize((target_w, max(1, int(logo.height * ratio))), Image.Resampling.LANCZOS)
+                margin = 10
+                positions = {
+                    "top-left": (margin, margin),
+                    "top-right": (img.width - logo.width - margin, margin),
+                    "bottom-left": (margin, img.height - logo.height - margin),
+                    "bottom-right": (
+                        img.width - logo.width - margin,
+                        img.height - logo.height - margin,
+                    ),
+                    "center": ((img.width - logo.width) // 2, (img.height - logo.height) // 2),
+                }
+                xy = positions.get(logo_position)
+                if xy is None:
+                    return f"Error: logo_position must be one of {list(positions)}"
+                img.alpha_composite(logo, dest=xy)
+                applied.append(f"logo:{logo_position}")
+
+            ext = Path(output).suffix.lower().lstrip(".")
+            if ext in ("jpg", "jpeg"):
+                img = img.convert("RGB")
+            img.save(output)
+            logger.info("Brand kit → %s (%s)", output, ", ".join(applied))
+        except Exception as exc:
+            logger.error("apply_brand_kit failed: %s", exc)
+            return f"Error: {exc}"
+
+        return json.dumps({"output": output, "applied": applied}, ensure_ascii=False)
+
+    @staticmethod
     def collage(
         input_paths: list[str],
         output: str,
@@ -524,6 +605,81 @@ class ImageToolkit:
         except Exception as exc:
             logger.error("info failed: %s", exc)
             return f"Error: {exc}"
+
+    @staticmethod
+    def export_social_pack(src: str, out_dir: str, mode: str = "center-crop") -> str:
+        """Export 9:16 / 1:1 / 16:9 variants of one image (Canva-style multi-ratio, offline).
+
+        Decodes once (PIL + EXIF transpose), saves each variant from the same
+        in-memory buffer in one loop. Targets are 1080x1920 / 1080x1080 /
+        1920x1080, but content is NEVER upscaled past source resolution —
+        small sources yield smaller (aspect-correct) files, reported honestly.
+
+        mode 'center-crop': crop to the target aspect first, then scale down.
+        mode 'letterbox': scale-to-fit then pad with black to the exact target.
+
+        LOAD-BEARING RISK: naive center-crop can decapitate faces/subjects —
+        it cuts symmetric edges with no saliency awareness. Smart-focal
+        detection is a future upgrade, not this method.
+        """
+        import json
+
+        from PIL import ImageOps
+
+        err = validate_input(src)
+        if err:
+            return err
+        err = validate_output_dir(out_dir)
+        if err:
+            return err
+        if mode not in ("center-crop", "letterbox"):
+            return "Error: mode must be 'center-crop' or 'letterbox'"
+
+        targets = {"9x16": (1080, 1920), "1x1": (1080, 1080), "16x9": (1920, 1080)}
+
+        try:
+            img: Image.Image = ImageOps.exif_transpose(Image.open(src))
+            img.load()
+            sw, sh = img.size
+            out = Path(out_dir)
+            out.mkdir(parents=True, exist_ok=True)
+            suffix = Path(src).suffix or ".jpg"
+            ext = suffix.lower().lstrip(".")
+            save_kwargs: dict[str, Any] = {"quality": 85} if ext in ("jpg", "jpeg", "webp") else {}
+
+            variants: list[dict[str, object]] = []
+            for label, (tw, th) in targets.items():
+                aspect = tw / th
+                if mode == "center-crop":
+                    if sw / sh > aspect:
+                        cw, ch = int(sh * aspect), sh
+                    else:
+                        cw, ch = sw, int(sw / aspect)
+                    left, top = (sw - cw) // 2, (sh - ch) // 2
+                    frame = img.crop((left, top, left + cw, top + ch))
+                    scale = min(1.0, tw / cw, th / ch)
+                    ow, oh = max(1, int(cw * scale)), max(1, int(ch * scale))
+                    if scale < 1.0:
+                        frame = frame.resize((ow, oh), Image.Resampling.LANCZOS)
+                else:
+                    scale = min(1.0, tw / sw, th / sh)
+                    ow_s, oh_s = max(1, int(sw * scale)), max(1, int(sh * scale))
+                    frame = img.resize((ow_s, oh_s), Image.Resampling.LANCZOS) if scale < 1.0 else img.copy()
+                    ow, oh = tw, th
+                    canvas = Image.new(frame.mode, (ow, oh), (0, 0, 0))
+                    canvas.paste(frame, ((ow - ow_s) // 2, (oh - oh_s) // 2))
+                    frame = canvas
+                dest = str(out / f"{Path(src).stem}_{label}{suffix}")
+                save_img = frame.convert("RGB") if ext in ("jpg", "jpeg") and frame.mode != "RGB" else frame
+                save_img.save(dest, **save_kwargs)
+                variants.append({"label": label, "path": dest, "width": ow, "height": oh})
+
+            logger.info("Social pack (%s) → %s (%d variants)", mode, out_dir, len(variants))
+        except Exception as exc:
+            logger.error("export_social_pack failed: %s", exc)
+            return f"Error: {exc}"
+
+        return json.dumps({"mode": mode, "source": src, "variants": variants}, ensure_ascii=False)
 
     @staticmethod
     def remove_background(input_path: str, output: str, alpha_matting: bool = False) -> str:
