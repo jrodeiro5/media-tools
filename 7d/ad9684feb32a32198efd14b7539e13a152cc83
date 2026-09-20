@@ -1,0 +1,31 @@
+tests/check_office.py
+  s_711b3532f7ce7c::t_bb9f3802e669df 1-16,19-20
+  s_711b3532f7ce7c::t_ff780484bf1cd3 17-18
+  s_711b3532f7ce7c::t_5e55c42afad22c 21
+src/media_tools/server.py
+  s_711b3532f7ce7c::t_5747a0d0184338 628-639
+  s_711b3532f7ce7c::t_030563a3fe27c9 640-645
+README.md
+  s_711b3532f7ce7c::t_bb9f3802e669df 5,57,79,107
+src/media_tools/tools/office.py
+  s_711b3532f7ce7c::t_ff780484bf1cd3 137-139
+  s_711b3532f7ce7c::t_bb9f3802e669df 91,107,123,133
+  s_711b3532f7ce7c::t_5747a0d0184338 5-7,81-90,92-106,108-112,128,130-132,134-136,140-145
+  s_711b3532f7ce7c::t_030563a3fe27c9 113-122,124-127,129
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7dad9684feb32a32198efd14b7539e13a152cc83",
+  "prompts": {},
+  "sessions": {
+    "s_711b3532f7ce7c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cf59ad8b-3285-4b4d-8155-d29aef4773a9",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
