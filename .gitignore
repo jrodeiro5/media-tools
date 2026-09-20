@@ -68,3 +68,6 @@ file_tests/
 openwiki/.last-update.json
 openwiki/.page-manifest.json
 openwiki/.claims/
+
+# Third-party harness skills stay local, never committed (project ships only its own media-* skills)
+.agents/skills/gitnexus/
