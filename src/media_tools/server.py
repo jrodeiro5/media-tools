@@ -1,4 +1,4 @@
-"""MCP server exposing 50+ multimedia processing tools."""
+"""MCP server exposing 100+ multimedia processing tools."""
 
 from __future__ import annotations
 
@@ -95,6 +95,16 @@ def pdf_extract_tables(
 ) -> str:
     """Dump raw PDF tables to CSV files (one file per table, no layout preserved)."""
     return PDFToolkit.extract_tables(input_path, output_dir, pages)
+
+
+@mcp.tool(name="pdf_tables_to_csv", tags={"pdf"})
+def pdf_tables_to_csv(
+    input_path: str,
+    output: str,
+    pages: list[int] | None = None,
+) -> str:
+    """Combine all PDF tables into one CSV with page/table/row columns."""
+    return PDFToolkit.tables_to_csv(input_path, output, pages)
 
 
 @mcp.tool(name="pdf_extract_screenshots", tags={"pdf"})
@@ -227,6 +237,12 @@ def md_to_branded_pdf(
     return PDFToolkit.md_to_branded_pdf(input_path, output, font_path, color, logo_path, logo_position, page_numbers)
 
 
+@mcp.tool(name="html_to_pdf", tags={"pdf"})
+def html_to_pdf(input_path: str, output: str) -> str:
+    """Convert a local HTML file (.html/.htm) to PDF using LibreOffice. Local files only, never URLs."""
+    return PDFToolkit.html_to_pdf(input_path, output)
+
+
 @mcp.tool(name="video_convert", tags={"video"})
 def video_convert(input_path: str, output: str) -> str:
     """Convert a video between formats. Uses the file extension to determine output codec."""
@@ -330,6 +346,19 @@ def video_object_erase(
     return VideoToolkit.object_erase(input_path, output, boxes, start, duration)
 
 
+@mcp.tool(name="video_blur_faces", tags={"video"})
+def video_blur_faces(
+    input_path: str,
+    output: str,
+    every_n_frames: int = 5,
+    mode: str = "pixelate",
+) -> str:
+    """Obscure faces on every video frame (Haar detect every Nth frame, IoU-track between)."""
+    from media_tools.tools.video import VideoToolkit
+
+    return VideoToolkit.blur_faces(input_path, output, every_n_frames, mode)
+
+
 @mcp.tool(name="video_thumbnail", tags={"video"})
 def video_thumbnail(input_path: str, output: str, timestamp: str = "00:00:01", accurate: bool = False) -> str:
     """Grab a single frame thumbnail. Fast input-seek by default; accurate=True for a frame-exact grab."""
@@ -372,6 +401,12 @@ def video_reverse(input_path: str, output: str) -> str:
     return VideoToolkit.reverse(input_path, output)
 
 
+@mcp.tool(name="video_mute", tags={"video"})
+def video_mute(input_path: str, output: str) -> str:
+    """Strip all audio streams, copying the video stream without re-encoding."""
+    return VideoToolkit.mute(input_path, output)
+
+
 @mcp.tool(name="video_speed", tags={"video"})
 def video_speed(input_path: str, output: str, factor: float = 2.0) -> str:
     """Change video playback speed. factor > 1 speeds up, < 1 slows down."""
@@ -382,6 +417,20 @@ def video_speed(input_path: str, output: str, factor: float = 2.0) -> str:
 def video_subtitle_burn(input_path: str, subtitle_path: str, output: str, preset: str = "plain") -> str:
     """Burn an .srt/.ass subtitle file into the video. preset: plain, karaoke, or social."""
     return VideoToolkit.subtitle_burn(input_path, subtitle_path, output, preset)
+
+
+@mcp.tool(name="video_transcribe", tags={"video"})
+def video_transcribe(
+    input_path: str,
+    out_dir: str,
+    model: str | None = None,
+    language: str | None = None,
+    min_silence_ms: int = 1000,
+    silence_thresh_dbfs: float | None = None,
+    keep_ms: int = 200,
+) -> str:
+    """Transcribe a video's speech to .srt in out_dir (extract → chunks → SRT, no burn)."""
+    return VideoToolkit.transcribe(input_path, out_dir, model, language, min_silence_ms, silence_thresh_dbfs, keep_ms)
 
 
 @mcp.tool(name="gif_to_mp4", tags={"video"})
@@ -532,6 +581,42 @@ def image_ocr(input_path: str) -> str:
     return ImageToolkit.ocr(input_path)
 
 
+@mcp.tool(name="image_grayscale", tags={"image"})
+def image_grayscale(input_path: str, output: str) -> str:
+    """Convert an image to grayscale (mode L)."""
+    return ImageToolkit.grayscale(input_path, output)
+
+
+@mcp.tool(name="image_sharpen", tags={"image"})
+def image_sharpen(input_path: str, output: str, radius: float = 2.0, percent: int = 150, threshold: int = 3) -> str:
+    """Sharpen an image with an unsharp mask (sensible defaults)."""
+    return ImageToolkit.sharpen(input_path, output, radius, percent, threshold)
+
+
+@mcp.tool(name="image_circle_crop", tags={"image"})
+def image_circle_crop(input_path: str, output: str) -> str:
+    """Center-crop an image to a circle; corners stay transparent (RGBA)."""
+    return ImageToolkit.circle_crop(input_path, output)
+
+
+@mcp.tool(name="image_split_tiles", tags={"image"})
+def image_split_tiles(input_path: str, output_dir: str, rows: int = 2, cols: int = 2) -> str:
+    """Split an image into a rows×cols tile grid + sidecar JSON manifest."""
+    return ImageToolkit.split_tiles(input_path, output_dir, rows, cols)
+
+
+@mcp.tool(name="image_upscale", tags={"image"})
+def image_upscale(input_path: str, output: str, scale: int = 2) -> str:
+    """Upscale an image 2x/3x with FSRCNN-small (model downloads on first run)."""
+    return ImageToolkit.upscale(input_path, output, scale)
+
+
+@mcp.tool(name="image_blur_faces", tags={"image"})
+def image_blur_faces(input_path: str, output: str, mode: str = "pixelate") -> str:
+    """Obscure faces in an image with the Haar frontal cascade. mode: pixelate or blur."""
+    return ImageToolkit.blur_faces(input_path, output, mode)
+
+
 @mcp.tool(name="audio_convert", tags={"audio"})
 def audio_convert(input_path: str, output: str, bitrate: str = "192k") -> str:
     """Convert audio between formats (extension determines format)."""
@@ -617,6 +702,12 @@ def audio_transcribe_chunks(
 def audio_pad_to_duration(input_path: str, output: str, target_ms: int, position: str = "end") -> str:
     """Pad audio with generated silence to reach exactly target_ms. No time-stretching."""
     return AudioToolkit.pad_to_duration(input_path, output, target_ms, position)
+
+
+@mcp.tool(name="audio_to_srt", tags={"audio"})
+def audio_to_srt(input: str, output: str) -> str:
+    """Format transcribe_chunks segments (transcript.json path or segments JSON) as a SubRip (.srt) file."""
+    return AudioToolkit.transcript_to_srt(input, output)
 
 
 @mcp.tool(name="office_to_markdown", tags={"office"})
@@ -747,6 +838,14 @@ def pdf_salvage(
     return PDFToolkit.salvage(input_path, out_dir, ocr_fallback, dpi)
 
 
+@mcp.tool(name="pdf_repair", tags={"pdf"})
+def pdf_repair(input_path: str, output: str) -> str:
+    """Rebuild a corrupt PDF's xref and re-emit parseable pages to a new viewable PDF (never in place)."""
+    from media_tools.tools.pdf import PDFToolkit
+
+    return PDFToolkit.repair(input_path, output)
+
+
 # === Batch ===
 
 
@@ -762,14 +861,33 @@ def batch_sweep(input_dir: str, output_dir: str, op: str, pattern: str = "*", ma
     return sweep(input_dir, output_dir, op, pattern, max_files)
 
 
+# === Probe (cross-family router) ===
+
+
+# Tag {"pdf"}: one family tag is required for scoped-server filtering; pdf is the
+# largest family and matches the returns_reclaim precedent for cross-cutting utilities.
+@mcp.tool(name="media_probe", tags={"pdf"})
+def media_probe(input_path: str) -> str:
+    """Sniff any local file (magic bytes + extension) and rank the media_tools that apply.
+
+    Read-only. Returns JSON: mime, kind, streams, width/height, duration, pages,
+    has_audio, has_alpha, plus a ranked tools list with one-line whys.
+    """
+    from media_tools.tools.probe import ProbeToolkit
+
+    return ProbeToolkit.probe(input_path)
+
+
 # === Returns (originals stash) ===
 
 
 @mcp.tool(name="returns_reclaim", tags={"pdf"})
-def returns_reclaim(ticket_id: str, output: str | None = None) -> str:
+def returns_reclaim(ticket_id: str, output: str | None = None, search_dir: str | None = None) -> str:
     """Restore a stashed original by ticket ID (see pdf_delete_pages / pdf_redact output)."""
     from media_tools.utils import returns_reclaim as _reclaim
 
+    if search_dir is not None:
+        return _reclaim(ticket_id, output, search_dir)
     return _reclaim(ticket_id, output)
 
 

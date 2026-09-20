@@ -2,6 +2,16 @@
 
 Scope: MCP+CLI tool gaps only. No web UI/hosting — that's a different product.
 
+## Paridad confirmada 2026-09-20 (iLove 45 tools + TinyWow 214 media)
+
+Method: `firecrawl map` + homepage nav scrape, /tmp only, no repo writes.
+
+- Ambas suites exponen y nos falta: `pdf_to_pptx`, `pdf_to_xlsx`, `html_to_pdf`, `image_upscale` — en ese orden de demanda.
+- `pdf_repair`: solo iLove lo expone; `salvage` cubre parcial (falta check de paridad).
+- Nichos nuevos: tablas→CSV, `video_mute` (`-an`), grayscale/sharpen/circle-crop/tiles, csv↔xlsx.
+- Descartes deliberados: remove-watermark (abuso), social downloaders (cuentas+ToS), WYSIWYG/AI-generativo/firma-hospedada/scan (hosting).
+- Ventaja nuestra (ni iLove ni TinyWow): audio (12), PII, TTS, `batch_sweep`, `returns_reclaim`, redact real, `image_ocr`/`to_video`/social packs.
+
 ## OCR (researched via Brave/Firecrawl, 2026-08-09)
 
 Currently: `pytesseract` is a dependency but unused — no OCR-output tool exists yet

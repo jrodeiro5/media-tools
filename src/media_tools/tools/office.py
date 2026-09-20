@@ -9,6 +9,7 @@ from pathlib import Path
 
 import anydoc
 
+from media_tools.refusals import overwrite_blocked
 from media_tools.utils import _subprocess_with_logging, logger, validate_input, validate_output_dir
 
 
@@ -98,7 +99,7 @@ class OfficeToolkit:
         if err:
             return err
         if Path(output).resolve() == Path(input_path).resolve():
-            return "Error: output must differ from input; edits are never in place"
+            return overwrite_blocked("Error: output must differ from input; edits are never in place")
         try:
             json.loads(commands)
         except ValueError as exc:

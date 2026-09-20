@@ -11,6 +11,7 @@ import pdfplumber
 import pypdf
 import pypdfium2 as pdfium
 
+from media_tools.refusals import encrypted_pdf, missing_binary
 from media_tools.utils import (
     _subprocess_with_logging,
     logger,
@@ -45,6 +46,66 @@ def _render_cover(pdf_path: str, cover_path: str, dpi: int = 72) -> str | None:
         return str(exc)
     logger.info("Cover → %s", cover_path)
     return None
+
+
+def _rebuild_xref(raw: bytes) -> tuple[bytes | None, int, int, list[str]]:
+    """Re-emit raw indirect-object blocks with a fresh xref table.
+
+    Ignores the original startxref/trailer entirely: scans ``N G obj``
+    offsets, slices each block up to the next object (tolerating a missing
+    ``endobj`` on cut-EOF files), dedupes by (number, generation), then
+    writes header + objects + rebuilt xref + minimal trailer whose /Root is
+    the /Catalog object when identifiable. Returns (rebuilt | None, kept,
+    stripped, errors). pypdf-only.
+    """
+    import re
+
+    matches = list(re.finditer(rb"(\d+)\s+(\d+)\s+obj\b", raw))
+    if not matches:
+        return None, 0, 0, ["no indirect objects found — nothing to rebuild"]
+    seen: dict[tuple[int, int], bytes] = {}
+    stripped = 0
+    for idx, match in enumerate(matches):
+        end = matches[idx + 1].start() if idx + 1 < len(matches) else len(raw)
+        block = raw[match.start() : end].strip()
+        if not block:
+            stripped += 1
+            continue
+        if b"endobj" not in block:
+            block += b"\nendobj"
+        key = (int(match.group(1)), int(match.group(2)))
+        if key in seen:
+            stripped += 1
+            continue
+        seen[key] = block
+    if not seen:
+        return None, 0, stripped, ["all object blocks were empty"]
+    root = min(seen)
+    for key, block in seen.items():
+        if b"/Catalog" in block:
+            root = key
+            break
+    out = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
+    offsets: dict[tuple[int, int], int] = {}
+    for key in sorted(seen):
+        offsets[key] = len(out)
+        out += seen[key] + b"\n"
+    max_num = max(n for n, _ in seen)
+    gen_of: dict[int, int] = {}
+    for n, g in seen:
+        gen_of.setdefault(n, g)
+    xref_pos = len(out)
+    out += f"xref\n0 {max_num + 1}\n".encode("ascii")
+    out += b"0000000000 65535 f \n"
+    for n in range(1, max_num + 1):
+        if n in gen_of:
+            out += f"{offsets[(n, gen_of[n])]:010d} {gen_of[n]:05d} n \n".encode("ascii")
+        else:
+            out += b"0000000000 00000 f \n"
+    out += (f"trailer\n<< /Size {max_num + 1} /Root {root[0]} {root[1]} R >>\nstartxref\n{xref_pos}\n%%EOF").encode(
+        "ascii"
+    )
+    return bytes(out), len(seen), stripped, []
 
 
 class PDFToolkit:
@@ -244,11 +305,112 @@ class PDFToolkit:
             return f"Error: {exc}"
 
     @staticmethod
-    def ocr(input_path: str, output: str | None = None, dpi: int = 200) -> str:
-        """OCR a scanned/image PDF page-by-page and return the extracted text."""
+    def ocr(
+        input_path: str,
+        output: str | None = None,
+        dpi: int = 200,
+        ocr_mode: str = "auto",
+        min_chars: int = 50,
+    ) -> str:
+        """OCR a PDF page-by-page, skipping pages that already have text.
+
+        ocr_mode 'auto' (default): probe each page's embedded text first
+        (pdfplumber, no render); keep pages with >= min_chars chars as-is
+        and only render + tesseract the rest. 'force': OCR every page via
+        pdfium + tesseract (previous behavior). 'never': embedded text only,
+        tesseract is never spawned. Page texts are stitched in page order.
+        Returns a JSON string with the stitched text plus a per-page source
+        map, e.g. {"text": ..., "page_sources": {"1": "embedded", "2": "ocr"}}.
+        When output is given the stitched text is also written there.
+        # Follow-up (out of scope): junk-text-layer detection via
+        # alphanumeric-ratio check for garbage embedded layers.
+        """
+        import json
+
         err = validate_input(input_path)
         if err:
             return err
+        if ocr_mode not in ("auto", "force", "never"):
+            return f"Error: ocr_mode must be auto, force, or never (got {ocr_mode!r})"
+
+        embedded: list[str] | None = None
+        if ocr_mode in ("auto", "never"):
+            try:
+                with pdfplumber.open(input_path) as pdf:
+                    embedded = [(page.extract_text() or "").strip() for page in pdf.pages]
+            except Exception as exc:
+                if ocr_mode == "never":
+                    logger.error("ocr probe failed: %s", exc)
+                    return f"Error: {exc}"
+                logger.warning("ocr probe failed, falling back to full OCR: %s", exc)
+
+        if ocr_mode == "never" and embedded is not None:
+            sources = {i + 1: "embedded" for i in range(len(embedded))}
+            text = "\n\n".join(embedded)
+            if output:
+                Path(output).write_text(text, encoding="utf-8")
+                logger.info("Kept %d embedded pages → %s", len(embedded), output)
+            logger.info("Kept %d embedded pages (no OCR)", len(embedded))
+            result: dict[str, object] = {"text": text, "page_sources": sources}
+            if output:
+                result["output"] = output
+            return json.dumps(result, ensure_ascii=False)
+
+        if embedded is not None:
+            needs_ocr = [len(t) < min_chars for t in embedded]
+            total = len(embedded)
+        else:
+            needs_ocr = []
+            total = 0
+
+        if ocr_mode == "force" or not embedded:
+            try:
+                import pytesseract
+            except ImportError:
+                return "Error: pytesseract not installed (pip install pytesseract, plus the tesseract binary)"
+
+            try:
+                pdf = pdfium.PdfDocument(input_path)
+                pages_text = []
+                for page in pdf:
+                    bitmap = page.render(scale=dpi / 72)
+                    img = bitmap.to_pil()
+                    pages_text.append(pytesseract.image_to_string(img).strip())
+                pdf.close()
+
+                text = "\n\n".join(pages_text)
+                if output:
+                    Path(output).write_text(text, encoding="utf-8")
+                    logger.info("OCR'd %d pages → %s", len(pages_text), output)
+                    return json.dumps(
+                        {
+                            "text": text,
+                            "page_sources": {i + 1: "ocr" for i in range(len(pages_text))},
+                            "output": output,
+                        },
+                        ensure_ascii=False,
+                    )
+
+                logger.info("OCR'd %d pages", len(pages_text))
+                return json.dumps(
+                    {"text": text, "page_sources": {i + 1: "ocr" for i in range(len(pages_text))}},
+                    ensure_ascii=False,
+                )
+            except Exception as exc:
+                logger.error("ocr failed: %s", exc)
+                return f"Error: {exc}"
+
+        if not any(needs_ocr):
+            sources = {i + 1: "embedded" for i in range(total)}
+            text = "\n\n".join(embedded)
+            if output:
+                Path(output).write_text(text, encoding="utf-8")
+                logger.info("Kept %d embedded pages → %s", total, output)
+            logger.info("Kept %d embedded pages (no OCR)", total)
+            result = {"text": text, "page_sources": sources}
+            if output:
+                result["output"] = output
+            return json.dumps(result, ensure_ascii=False)
 
         try:
             import pytesseract
@@ -256,22 +418,28 @@ class PDFToolkit:
             return "Error: pytesseract not installed (pip install pytesseract, plus the tesseract binary)"
 
         try:
-            pdf = pdfium.PdfDocument(input_path)
+            doc = pdfium.PdfDocument(input_path)
             pages_text = []
-            for page in pdf:
-                bitmap = page.render(scale=dpi / 72)
-                img = bitmap.to_pil()
-                pages_text.append(pytesseract.image_to_string(img).strip())
-            pdf.close()
+            sources = {}
+            for i in range(total):
+                if not needs_ocr[i]:
+                    pages_text.append(embedded[i])
+                    sources[i + 1] = "embedded"
+                else:
+                    img = doc[i].render(scale=dpi / 72).to_pil()
+                    pages_text.append(pytesseract.image_to_string(img).strip())
+                    sources[i + 1] = "ocr"
+            doc.close()
 
             text = "\n\n".join(pages_text)
             if output:
                 Path(output).write_text(text, encoding="utf-8")
-                logger.info("OCR'd %d pages → %s", len(pages_text), output)
-                return f"OCR'd {len(pages_text)} pages → {output}"
-
-            logger.info("OCR'd %d pages", len(pages_text))
-            return text
+                logger.info("OCR'd %d/%d pages → %s", sum(needs_ocr), total, output)
+            logger.info("OCR'd %d/%d pages (%d kept as embedded)", sum(needs_ocr), total, total - sum(needs_ocr))
+            result = {"text": text, "page_sources": sources}
+            if output:
+                result["output"] = output
+            return json.dumps(result, ensure_ascii=False)
         except Exception as exc:
             logger.error("ocr failed: %s", exc)
             return f"Error: {exc}"
@@ -440,6 +608,110 @@ class PDFToolkit:
                 "pages_with_images": with_images,
                 "pages_failed": failed,
                 "manifest": manifest_path,
+            }
+        )
+
+    @staticmethod
+    def repair(input_path: str, output: str) -> str:
+        """Rebuild a corrupt PDF into a new viewable PDF (never in place).
+
+        Ignores the broken startxref/trailer: pass 1 copies parseable pages
+        via pypdf (strict=False); pass 2 scans raw object offsets, re-emits
+        them with a rebuilt xref, then copies parseable pages out of the
+        rebuild. Failing pages/objects are skipped and recorded. Returns JSON
+        {output, pages_kept, pages_dropped, objects_stripped, errors}; when no
+        viewable page survives, returns an Error suggesting pdf_salvage.
+        """
+        import json
+
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+        try:
+            if Path(input_path).resolve() == Path(output).resolve():
+                return "Error: repair never writes in place — output must differ from input"
+        except OSError as exc:
+            return f"Error: {exc}"
+
+        errors: list[str] = []
+        pages_kept = 0
+        pages_dropped = 0
+        objects_stripped = 0
+        writer = pypdf.PdfWriter()
+
+        def _copy_pages(reader: pypdf.PdfReader) -> None:
+            nonlocal pages_kept, pages_dropped
+            try:
+                total = len(reader.pages)
+            except Exception as exc:
+                errors.append(f"page tree unreadable: {exc}")
+                return
+            for i in range(total):
+                try:
+                    writer.add_page(reader.pages[i])
+                    pages_kept += 1
+                except Exception as exc:
+                    pages_dropped += 1
+                    errors.append(f"page {i + 1} dropped: {exc}")
+
+        try:
+            first = pypdf.PdfReader(input_path, strict=False)
+            if getattr(first, "is_encrypted", False):
+                return "Error: PDF is encrypted — unlock with pdf_unlock first"
+            _copy_pages(first)
+        except Exception as exc:
+            errors.append(f"direct open failed: {exc}")
+
+        if pages_kept == 0:
+            try:
+                raw = Path(input_path).read_bytes()
+            except OSError as exc:
+                return f"Error: {exc}"
+            rebuilt, _kept_objs, stripped, rebuild_errors = _rebuild_xref(raw)
+            objects_stripped += stripped
+            errors.extend(rebuild_errors)
+            if rebuilt is not None:
+                writer = pypdf.PdfWriter()
+                try:
+                    _copy_pages(pypdf.PdfReader(io.BytesIO(rebuilt), strict=False))
+                except Exception as exc:
+                    errors.append(f"rebuilt open failed: {exc}")
+
+        if pages_kept == 0:
+            detail = "; ".join(errors) or "no parseable pages"
+            return (
+                f"Error: pdf_repair recovered 0 viewable pages from {input_path} "
+                f"({detail}); try pdf_salvage for text/image content extraction instead"
+            )
+        try:
+            with open(output, "wb") as fh:
+                writer.write(fh)
+        except Exception as exc:
+            logger.error("repair failed: %s", exc)
+            return (
+                f"Error: pdf_repair could not emit {output}: {exc}; "
+                "try pdf_salvage for text/image content extraction instead"
+            )
+        try:
+            verify = len(pypdf.PdfReader(output, strict=False).pages)
+            if verify != pages_kept:
+                errors.append(f"verify: output has {verify} pages, expected {pages_kept}")
+        except Exception as exc:
+            return (
+                f"Error: repaired file {output} did not verify ({exc}); "
+                "try pdf_salvage for text/image content extraction instead"
+            )
+        logger.info("Repaired %s → %s (%d kept, %d dropped)", input_path, output, pages_kept, pages_dropped)
+        return json.dumps(
+            {
+                "output": output,
+                "pages_kept": pages_kept,
+                "pages_dropped": pages_dropped,
+                "objects_stripped": objects_stripped,
+                "errors": errors,
             }
         )
 
@@ -1006,13 +1278,13 @@ class PDFToolkit:
             if not reader.get_fields():
                 return "Error: PDF has no form fields"
 
-            for page in reader.pages:
-                writer.add_page(page)
+            writer.append(reader)
 
             # Fill fields
             fields_obj = reader.get_fields()
             if fields_obj:
-                writer.update_page_form_field_values(writer.pages[0], fields)
+                for page in writer.pages:
+                    writer.update_page_form_field_values(page, fields)
 
             writer.write(output)
             writer.close()
@@ -1100,7 +1372,9 @@ class PDFToolkit:
 
             logger.info("PDF/A conversion → %s", output)
         except FileNotFoundError:
-            return "Error: Ghostscript (gs) not found. Install with: brew install ghostscript"
+            return missing_binary(
+                "Error: Ghostscript (gs) not found. Install with: brew install ghostscript", binary="gs"
+            )
         except Exception as exc:
             logger.error("pdf_to_a failed: %s", exc)
             return f"Error: {exc}"
@@ -1142,6 +1416,8 @@ class PDFToolkit:
             return markdown
         except (anydoc.EncryptedError, anydoc.UnsupportedError) as exc:
             logger.error("pdf_to_markdown failed: %s", exc)
+            if isinstance(exc, anydoc.EncryptedError):
+                return encrypted_pdf(f"Error: {exc}")
             return f"Error: {exc}"
         except anydoc.ConvertError as exc:
             logger.error("pdf_to_markdown failed: %s", exc)
@@ -1381,6 +1657,36 @@ class PDFToolkit:
         return f"Markdown → branded PDF → {output}"
 
     @staticmethod
+    def html_to_pdf(input_path: str, output: str) -> str:
+        """Convert a local HTML file (.html/.htm) to PDF using LibreOffice (soffice headless).
+
+        Local files only, never URLs (url rendering is cloud/Firecrawl class).
+        """
+        if input_path.startswith(("http://", "https://")):
+            return "Error: input must be a local HTML file, not a URL"
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+        if Path(input_path).suffix.lower() not in {".html", ".htm"}:
+            return "Error: input must be a local .html or .htm file"
+
+        outdir = Path(output).parent
+        cmd = ["soffice", "--headless", "--convert-to", "pdf", "--outdir", str(outdir), input_path]
+        desc, ok = _subprocess_with_logging(cmd, f"Converted to PDF → {output}")
+        if not ok:
+            return desc
+        actual = outdir / f"{Path(input_path).stem}.pdf"
+        if actual != Path(output):
+            try:
+                actual.rename(output)
+            except OSError:
+                pass  # Files may already match
+        return desc
+
+    @staticmethod
     def to_docx(input_path: str, output: str) -> str:
         """Convert PDF to DOCX. Uses pdf2docx if the `docx` extra is installed (better layout, AGPL PyMuPDF),
         otherwise LibreOffice's PDF import (text lands in text boxes, so it is far less editable)."""
@@ -1597,3 +1903,61 @@ class PDFToolkit:
         except Exception as exc:
             logger.error("extract_tables failed: %s", exc)
             return f"Error: {exc}"
+
+    @staticmethod
+    def tables_to_csv(
+        input_path: str,
+        output: str,
+        pages: list[int] | None = None,
+    ) -> str:
+        """Combine all PDF tables into one CSV with page/table/row columns.
+
+        Reuses extract_tables (same per-page strategy pick), so output stays
+        in parity with the per-table CSVs. Data columns are col1..colN with
+        N = widest table; narrower rows are padded with "". Returns
+        "Error: ..." when the input is invalid or no tables are found.
+        """
+        import csv
+        import json
+        import tempfile
+
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                raw = PDFToolkit.extract_tables(input_path, tmp, pages)
+                if raw.startswith("Error:"):
+                    return raw
+                payload = json.loads(raw)
+                tables_info = payload.get("tables", [])
+                if not tables_info:
+                    return f"Error: No tables found in {input_path}"
+                rows: list[list[str]] = []
+                width = 0
+                per_table: list[tuple[int, int, list[list[str]]]] = []
+                for info in tables_info:
+                    with open(info["file"], newline="", encoding="utf-8") as f:
+                        data = list(csv.reader(f))
+                    if not data:
+                        continue
+                    width = max(width, max(len(r) for r in data))
+                    per_table.append((info["page"], info["table"], data))
+                if width == 0:
+                    return f"Error: No tables found in {input_path}"
+                for page_no, table_no, data in per_table:
+                    for i, row in enumerate(data, start=1):
+                        rows.append([str(page_no), str(table_no), str(i), *row, *[""] * (width - len(row))])
+                with open(output, "w", newline="", encoding="utf-8") as f:
+                    csv.writer(f).writerow(["page", "table", "row", *[f"col{i}" for i in range(1, width + 1)]])
+                    csv.writer(f).writerows(rows)
+            logger.info("Combined %d tables → %s", len(per_table), output)
+        except Exception as exc:
+            logger.error("tables_to_csv failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Tables → {output} ({len(per_table)} tables, {len(rows)} rows)"

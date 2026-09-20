@@ -709,8 +709,211 @@ class ImageToolkit:
             logger.info("Removed background → %s", output)
         except ImportError:
             return "Error: rembg not installed. Run: pip install rembg"
+        except SystemExit as exc:
+            detail = exc.code or "rembg exited (likely missing onnxruntime backend)"
+            logger.error("remove_background failed: %s", detail)
+            return f"Error: rembg backend missing (onnxruntime): {detail}"
         except Exception as exc:
             logger.error("remove_background failed: %s", exc)
             return f"Error: {exc}"
 
         return f"Background removed → {output}"
+
+    @staticmethod
+    def grayscale(input_path: str, output: str) -> str:
+        """Convert an image to grayscale (mode L)."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            img: Image.Image = Image.open(input_path)
+            img = img.convert("L")
+            ext = Path(output).suffix.lower().lstrip(".")
+            if ext in ("jpg", "jpeg") and img.mode != "L":
+                img = img.convert("L")
+            img.save(output)
+            logger.info("Grayscale → %s", output)
+        except Exception as exc:
+            logger.error("grayscale failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Grayscale → {output}"
+
+    @staticmethod
+    def sharpen(input_path: str, output: str, radius: float = 2.0, percent: int = 150, threshold: int = 3) -> str:
+        """Sharpen an image with an unsharp mask (sensible defaults)."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            img: Image.Image = Image.open(input_path)
+            img = img.filter(ImageFilter.UnsharpMask(radius=radius, percent=percent, threshold=threshold))
+            img.save(output)
+            logger.info("Sharpen r=%.1f p=%d t=%d → %s", radius, percent, threshold, output)
+        except Exception as exc:
+            logger.error("sharpen failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Sharpened → {output}"
+
+    @staticmethod
+    def circle_crop(input_path: str, output: str) -> str:
+        """Center-crop an image to a circle; corners stay transparent (RGBA)."""
+        from PIL import ImageDraw
+
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            img: Image.Image = Image.open(input_path).convert("RGBA")
+            side = min(img.width, img.height)
+            left, top = (img.width - side) // 2, (img.height - side) // 2
+            img = img.crop((left, top, left + side, top + side))
+            mask = Image.new("L", (side, side), 0)
+            ImageDraw.Draw(mask).ellipse((0, 0, side, side), fill=255)
+            img.putalpha(mask)
+            ext = Path(output).suffix.lower().lstrip(".")
+            if ext in ("jpg", "jpeg"):
+                img = img.convert("RGB")
+            img.save(output)
+            logger.info("Circle crop → %s", output)
+        except Exception as exc:
+            logger.error("circle_crop failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Circle crop → {output}"
+
+    @staticmethod
+    def split_tiles(input_path: str, output_dir: str, rows: int = 2, cols: int = 2) -> str:
+        """Split an image into a rows×cols tile grid + sidecar JSON manifest."""
+        import json
+
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output_dir)
+        if err:
+            return err
+        if rows < 1 or cols < 1:
+            return "Error: rows and cols must be >= 1"
+
+        try:
+            img: Image.Image = Image.open(input_path)
+            img.load()
+            out_dir = Path(output_dir)
+            out_dir.mkdir(parents=True, exist_ok=True)
+            stem = Path(input_path).stem
+            tw, th = img.width // cols, img.height // rows
+            files: list[dict[str, object]] = []
+            for r in range(rows):
+                for c in range(cols):
+                    left, top = c * tw, r * th
+                    right = (c + 1) * tw if c < cols - 1 else img.width
+                    bottom = (r + 1) * th if r < rows - 1 else img.height
+                    tile = img.crop((left, top, right, bottom))
+                    dest = str(out_dir / f"{stem}_tile_{r:02d}_{c:02d}.png")
+                    tile.save(dest)
+                    files.append({"row": r, "col": c, "path": dest, "width": right - left, "height": bottom - top})
+            payload = {"source": input_path, "rows": rows, "cols": cols, "tiles": len(files), "files": files}
+            manifest = str(out_dir / f"{stem}_tiles_manifest.json")
+            Path(manifest).write_text(json.dumps(payload, indent=2), encoding="utf-8")
+            payload["manifest"] = manifest
+            logger.info("Split %dx%d tiles → %s", rows, cols, output_dir)
+        except Exception as exc:
+            logger.error("split_tiles failed: %s", exc)
+            return f"Error: {exc}"
+
+        return json.dumps(payload, ensure_ascii=False)
+
+    @staticmethod
+    def upscale(input_path: str, output: str, scale: int = 2) -> str:
+        """Upscale an image 2x/3x with FSRCNN-small via cv2.dnn_superres.
+
+        Model (~10KB) downloads on first run to ~/.cache/media-tools/models
+        (SHA256-pinned, rembg precedent); no cached model + no network
+        returns an offline Error. Model source Saafke/FSRCNN_Tensorflow
+        is Apache-2.0.
+        """
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+        if scale not in (2, 3):
+            return "Error: scale must be 2 or 3 (FSRCNN-small ships x2/x3)"
+
+        try:
+            import cv2
+
+            from media_tools.tools._vision import ensure_asset
+
+            model_path = ensure_asset(f"fsrcnn_x{scale}")
+            sr = cv2.dnn_superres.DnnSuperResImpl.create()
+            sr.readModel(model_path)
+            sr.setModel("fsrcnn", scale)
+            img = cv2.imread(input_path)
+            if img is None:
+                return f"Error: could not decode image: {input_path}"
+            cv2.imwrite(output, sr.upsample(img))
+            logger.info("Upscaled x%d → %s", scale, output)
+        except RuntimeError as exc:
+            return str(exc)
+        except Exception as exc:
+            logger.error("upscale failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Upscaled x{scale} → {output}"
+
+    @staticmethod
+    def blur_faces(input_path: str, output: str, mode: str = "pixelate") -> str:
+        """Obscure faces with the Haar frontal cascade (pixelate default, else blur).
+
+        Haar limits: finds near-upright frontal faces >= 30px; misses
+        profiles, heavy occlusion, tiny or rotated faces. Obscuring is
+        best-effort, not a privacy guarantee — verify the output.
+        Zero faces is success: the output is still written (a copy) and
+        the message reports faces:0.
+        """
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+        if mode not in ("pixelate", "blur"):
+            return "Error: mode must be 'pixelate' or 'blur'"
+
+        try:
+            import cv2
+
+            from media_tools.tools._vision import detect_faces, ensure_asset, obscure_boxes
+
+            xml_path = ensure_asset("haar_frontalface")
+            img = cv2.imread(input_path)
+            if img is None:
+                return f"Error: could not decode image: {input_path}"
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            faces = detect_faces(gray, xml_path)
+            obscure_boxes(img, faces, mode)
+            cv2.imwrite(output, img)
+            logger.info("Blurred %d faces (%s) → %s", len(faces), mode, output)
+        except RuntimeError as exc:
+            return str(exc)
+        except Exception as exc:
+            logger.error("blur_faces failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Blurred {len(faces)} faces ({mode}) → {output}"

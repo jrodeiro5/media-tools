@@ -252,6 +252,20 @@ class VideoToolkit:
         return desc
 
     @staticmethod
+    def mute(input_path: str, output: str) -> str:
+        """Strip all audio streams, copying the video stream without re-encoding."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        cmd = ["ffmpeg", "-y", "-i", input_path, "-an", "-c:v", "copy", output]
+        desc, ok = _subprocess_with_logging(cmd, f"Muted → {output}")
+        return desc
+
+    @staticmethod
     def speed(input_path: str, output: str, factor: float = 2.0) -> str:
         """Change playback speed. factor > 1 speeds up, < 1 slows down."""
         err = validate_input(input_path)
@@ -516,6 +530,11 @@ class VideoToolkit:
         if preset not in VideoToolkit._SUBTITLE_PRESETS:
             return f"Error: unknown preset '{preset}'. Valid presets: {sorted(VideoToolkit._SUBTITLE_PRESETS)}"
 
+        probe_cmd = ["ffmpeg", "-hide_banner", "-h", "filter=subtitles"]
+        libass = subprocess.run(probe_cmd, capture_output=True, text=True)
+        if libass.returncode != 0 or "Unknown filter" in (libass.stdout + libass.stderr):
+            return "Error: ffmpeg build lacks libass (subtitles filter). Reinstall ffmpeg with libass support"
+
         escaped = str(subtitle_path).replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
         vf = f"subtitles='{escaped}'"
         if style:
@@ -524,6 +543,59 @@ class VideoToolkit:
         cmd = ["ffmpeg", "-y", "-i", input_path, "-vf", vf, *codec_args, output]
         desc, ok = _subprocess_with_logging(cmd, f"Burned subtitles ({preset}) → {output}")
         return desc
+
+    @staticmethod
+    def transcribe(
+        input_path: str,
+        out_dir: str,
+        model: str | None = None,
+        language: str | None = None,
+        min_silence_ms: int = 1000,
+        silence_thresh_dbfs: float | None = None,
+        keep_ms: int = 200,
+    ) -> str:
+        """Transcribe a video's speech to .srt (recipe, no burn).
+
+        Extracts audio to out_dir, runs transcribe_chunks, formats the
+        segments as transcript.srt. Burning stays a separate explicit
+        subtitle_burn step.
+        """
+        from media_tools.tools.audio import AudioToolkit
+
+        err = validate_input(input_path)
+        if err:
+            return err
+        try:
+            out = Path(out_dir)
+            out.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            return f"Error: cannot create {out_dir}: {exc}"
+
+        audio_path = str(out / "audio.wav")
+        extracted = VideoToolkit.extract_audio(input_path, audio_path, "wav")
+        if extracted.startswith("Error:") or not Path(audio_path).is_file():
+            logger.error("video transcribe extract failed: %s", extracted)
+            return extracted if extracted.startswith("Error:") else f"Error: {extracted}"
+
+        raw = AudioToolkit.transcribe_chunks(
+            audio_path, out_dir, model, language, min_silence_ms, silence_thresh_dbfs, keep_ms
+        )
+        try:
+            data = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            return raw
+        if not isinstance(data, dict) or "transcript_json" not in data:
+            return raw
+
+        srt_path = str(out / "transcript.srt")
+        srt_raw = AudioToolkit.transcript_to_srt(str(data["transcript_json"]), srt_path)
+        if srt_raw.startswith("Error:"):
+            return srt_raw
+        logger.info("Transcribed video → %s", srt_path)
+        return json.dumps(
+            {"srt": srt_path, "transcript_json": data["transcript_json"], "txt": data["transcript_txt"]},
+            ensure_ascii=False,
+        )
 
     @staticmethod
     def gif_to_mp4(input_path: str, output: str) -> str:
@@ -958,6 +1030,107 @@ class VideoToolkit:
                 "height": height,
                 "hint": "verify with video_contact_sheet before/after "
                 "(inpaint can leave smeared ghosts on large boxes)",
+            },
+            ensure_ascii=False,
+        )
+
+    @staticmethod
+    def blur_faces(
+        input_path: str,
+        output: str,
+        every_n_frames: int = 5,
+        mode: str = "pixelate",
+    ) -> str:
+        """Obscure faces on every frame: Haar detect every Nth frame, IoU-track boxes between.
+
+        Same Haar limits as image_blur_faces (frontal, >= 30px; profiles and
+        occluded faces are missed — verify the output). Tracked boxes persist
+        across skipped frames and age out after 2 missed detection rounds.
+        Output is video-only (audio dropped, same as object_erase).
+        """
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+        if mode not in ("pixelate", "blur"):
+            return "Error: mode must be 'pixelate' or 'blur'"
+        if every_n_frames < 1:
+            return "Error: every_n_frames must be >= 1"
+
+        try:
+            import tempfile
+
+            import cv2
+
+            from media_tools.tools._vision import (
+                detect_faces,
+                ensure_asset,
+                obscure_boxes,
+                track_boxes,
+            )
+        except Exception as exc:
+            return f"Error: {exc}"
+
+        try:
+            xml_path = ensure_asset("haar_frontalface")
+        except RuntimeError as exc:
+            return str(exc)
+
+        try:
+            cap = cv2.VideoCapture(input_path)
+            if not cap.isOpened():
+                return "Error: Could not open video file"
+            fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+            tracked: list[dict] = []
+            frames_with_faces = 0
+            max_faces = 0
+            with tempfile.TemporaryDirectory() as tmp:
+                frame_idx = 0
+                while True:
+                    ret, frame = cap.read()
+                    if not ret:
+                        break
+                    if frame_idx % every_n_frames == 0:
+                        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                        tracked = track_boxes(tracked, detect_faces(gray, xml_path))
+                    boxes = [e["box"] for e in tracked]
+                    if boxes:
+                        obscure_boxes(frame, boxes, mode)
+                        frames_with_faces += 1
+                        max_faces = max(max_faces, len(boxes))
+                    cv2.imwrite(str(Path(tmp) / f"frame_{frame_idx:06d}.png"), frame)
+                    frame_idx += 1
+                cap.release()
+                if frame_idx == 0:
+                    return "Error: no frames processed"
+                codec_args = _codec_for(output)
+                cmd = [
+                    "ffmpeg",
+                    "-y",
+                    "-framerate",
+                    str(fps),
+                    "-i",
+                    str(Path(tmp) / "frame_%06d.png"),
+                    *codec_args,
+                    output,
+                ]
+                desc, ok = _subprocess_with_logging(cmd, f"Blurred faces → {output}")
+                if not ok:
+                    return desc
+        except Exception as exc:
+            logger.error("blur_faces failed: %s", exc)
+            return f"Error: {exc}"
+        return json.dumps(
+            {
+                "result": desc,
+                "output": output,
+                "frames_processed": frame_idx,
+                "frames_with_faces": frames_with_faces,
+                "max_faces": max_faces,
+                "every_n_frames": every_n_frames,
+                "mode": mode,
             },
             ensure_ascii=False,
         )

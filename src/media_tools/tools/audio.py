@@ -413,6 +413,80 @@ class AudioToolkit:
         )
 
     @staticmethod
+    def _srt_stamp(total_ms: int) -> str:
+        """Format milliseconds as HH:MM:SS,mmm (hours unbounded)."""
+        hours, rem = divmod(total_ms, 3_600_000)
+        minutes, rem = divmod(rem, 60_000)
+        seconds, ms = divmod(rem, 1000)
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d},{ms:03d}"
+
+    @staticmethod
+    def transcript_to_srt(input: str, output: str) -> str:
+        """Format transcribe_chunks segments as a SubRip (.srt) file.
+
+        input accepts a transcript.json path ({"segments": [...]}) or a raw
+        segments JSON string (object with "segments" or a bare list). Cue end
+        is start_ms + duration_ms; empty texts are skipped, numbering is
+        sequential over the kept cues.
+        """
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        raw = input
+        maybe_path = Path(input)
+        if "\n" not in input and maybe_path.is_file():
+            try:
+                raw = maybe_path.read_text()
+            except OSError as exc:
+                logger.error("transcript_to_srt read failed: %s", exc)
+                return f"Error: cannot read {input}: {exc}"
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            return f"Error: input is neither a transcript.json path nor segments JSON ({exc})"
+        segments = data.get("segments") if isinstance(data, dict) else data
+        if not isinstance(segments, list) or not segments:
+            return "Error: no segments found (expected {'segments': [...]} or [...])"
+
+        cues: list[str] = []
+        for seg in segments:
+            if not isinstance(seg, dict):
+                return f"Error: segment must be an object, got {seg!r}"
+            text = str(seg.get("text", "")).strip()
+            if not text:
+                continue
+            start_ms = seg.get("start_ms")
+            if start_ms is None and seg.get("start_s") is not None:
+                try:
+                    start_ms = int(round(float(seg["start_s"]) * 1000))
+                except (TypeError, ValueError):
+                    return f"Error: bad start_s in segment {seg!r}"
+            dur_ms = seg.get("duration_ms")
+            if dur_ms is None and seg.get("duration_s") is not None:
+                try:
+                    dur_ms = int(round(float(seg["duration_s"]) * 1000))
+                except (TypeError, ValueError):
+                    return f"Error: bad duration_s in segment {seg!r}"
+            if not isinstance(start_ms, int) or not isinstance(dur_ms, int):
+                return f"Error: segment needs start_ms/duration_ms ints, got {seg!r}"
+            if start_ms < 0 or dur_ms <= 0:
+                return f"Error: segment needs start_ms >= 0 and duration_ms > 0, got {seg!r}"
+            end_ms = start_ms + dur_ms
+            cues.append(
+                f"{len(cues) + 1}\n{AudioToolkit._srt_stamp(start_ms)} --> {AudioToolkit._srt_stamp(end_ms)}\n{text}\n"
+            )
+        if not cues:
+            return "Error: all segments have empty text — nothing to write"
+        try:
+            Path(output).write_text("\n".join(cues), encoding="utf-8")
+        except OSError as exc:
+            logger.error("transcript_to_srt write failed: %s", exc)
+            return f"Error: cannot write {output}: {exc}"
+        logger.info("Wrote %d cues → %s", len(cues), output)
+        return json.dumps({"srt": output, "cues": len(cues), "segments": len(segments)}, ensure_ascii=False)
+
+    @staticmethod
     def pad_to_duration(input_path: str, output: str, target_ms: int, position: str = "end") -> str:
         """Pad audio with generated silence to reach exactly target_ms (Descript-style, offline).
 

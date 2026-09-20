@@ -3,6 +3,11 @@
 ## Unreleased
 
 - `pdf2docx` (AGPL-3.0 via PyMuPDF) moved to the optional `docx` extra; `pdf_to_docx` falls back to LibreOffice without it.
+- New tools (90→104): `video_mute`, `html_to_pdf`, `pdf_tables_to_csv`, `image_grayscale/sharpen/circle_crop/split_tiles`, `pdf_repair`, `audio_to_srt`, `video_transcribe`, `image_upscale` (FSRCNN), `image_blur_faces`, `video_blur_faces`, `media_probe`.
+- `ocr_mode=auto|force|never` on the PDF OCR path (embedded text first, tesseract only where needed).
+- Refusal-ticket prototype (`refusals.py`, string-compatible with `Error:`).
+- `openai` is now a required dependency (LiteLLM proxy transport); `opencv-python-headless` swapped for `opencv-contrib-python-headless` (same 5.0.0.93, Apache-2.0) for FSRCNN/Haar.
+- `returns_reclaim` exposes `search_dir`; `video_subtitle_burn` pre-checks libass; `image_remove_background` returns `Error:` instead of `sys.exit` when onnxruntime is missing.
 
 ## 0.1.0 — 2026-09-20
 

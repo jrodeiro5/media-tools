@@ -8,7 +8,7 @@ packages = ["src/media_tools"]
 [project]
 name = "media-tools"
 version = "0.1.0"
-description = "MCP server with 90 local multimedia tools (PDF, video, image, audio, office docs, PII redaction)"
+description = "MCP server with 100+ local multimedia tools (PDF, video, image, audio, office docs, PII redaction)"
 readme = "README.md"
 license = "MIT"
 authors = [{ name = "Javier Rodeiro" }]
@@ -36,7 +36,8 @@ dependencies = [
     "pytesseract>=0.3.10",
     "rembg>=2.0.75",
     "liteparse>=2.11.1",
-    "opencv-python-headless>=5.0.0.93",
+    "opencv-contrib-python-headless>=5.0.0.93",
+    "openai>=3.13.0",
 ]
 
 [dependency-groups]

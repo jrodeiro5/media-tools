@@ -51,6 +51,9 @@ class AIToolkit:
                 max_tokens=4096,
             )
             return response.choices[0].message.content or ""
+        except ImportError:
+            logger.error("LLM call failed: openai package not installed")
+            return "Error: openai not installed — run `uv sync` to enable AI tools"
         except Exception as exc:
             logger.error("LLM call failed: %s", exc)
             return f"Error: LLM call failed: {exc}"

@@ -85,6 +85,8 @@ def run_mimo_ocr(input_path: str, output_path: str, api_key: str):
 
         import pypdfium2 as pdfium  # type: ignore[import-untyped]
         from openai import OpenAI
+        from openai.types.chat.chat_completion_content_part_param import ChatCompletionContentPartParam
+        from openai.types.chat.chat_completion_user_message_param import ChatCompletionUserMessageParam
 
         client = OpenAI(api_key=api_key, base_url="https://token-plan-ams.xiaomimimo.com/v1")
 
@@ -96,14 +98,14 @@ def run_mimo_ocr(input_path: str, output_path: str, api_key: str):
         chunks = [list(range(i, min(i + chunk_size, total_pages))) for i in range(0, total_pages, chunk_size)]
         print(f"Processing in {len(chunks)} chunks of up to {chunk_size} pages each...")
 
-        final_markdown = []
+        final_markdown: list[str] = []
 
         for idx, page_indices in enumerate(chunks):
             print(
                 f"\nProcessing chunk {idx + 1}/{len(chunks)} (Pages {page_indices[0] + 1} to {page_indices[-1] + 1})..."
             )
 
-            image_parts = []
+            image_parts: list[ChatCompletionContentPartParam] = []
             for p in page_indices:
                 page = pdf[p]
                 bitmap = page.render(scale=2.0)
@@ -126,11 +128,12 @@ def run_mimo_ocr(input_path: str, output_path: str, api_key: str):
             )
             image_parts.append({"type": "text", "text": prompt})
 
+            messages: list[ChatCompletionUserMessageParam] = [{"role": "user", "content": image_parts}]
             response = client.chat.completions.create(
                 model="mimo-v2.5",
-                messages=[{"role": "user", "content": image_parts}],
+                messages=messages,
             )
-            final_markdown.append(response.choices[0].message.content)
+            final_markdown.append(response.choices[0].message.content or "")
             print(f"  Chunk {idx + 1} completed!")
 
         pdf.close()

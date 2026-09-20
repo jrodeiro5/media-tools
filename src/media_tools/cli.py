@@ -20,6 +20,7 @@ from media_tools.tools.image import ImageToolkit
 from media_tools.tools.office import OfficeToolkit
 from media_tools.tools.pdf import PDFToolkit
 from media_tools.tools.pii import PiiToolkit
+from media_tools.tools.probe import ProbeToolkit
 from media_tools.tools.video import VideoToolkit
 from media_tools.utils import returns_reclaim
 
@@ -66,6 +67,10 @@ def _pdf_extract_tables(ns):
     return PDFToolkit.extract_tables(ns.input, ns.output, ns.pages)
 
 
+def _pdf_tables_to_csv(ns):
+    return PDFToolkit.tables_to_csv(ns.input, ns.output, ns.pages)
+
+
 def _pdf_to_markdown(ns):
     return PDFToolkit.pdf_to_markdown(ns.input, ns.output)
 
@@ -74,6 +79,10 @@ def _pdf_md_to_pdf(ns):
     return PDFToolkit.md_to_branded_pdf(
         ns.input, ns.output, ns.font, ns.color, ns.logo, ns.logo_position, ns.page_numbers
     )
+
+
+def _pdf_from_html(ns):
+    return PDFToolkit.html_to_pdf(ns.input, ns.output)
 
 
 def _pdf_watermark(ns):
@@ -122,6 +131,10 @@ def _pdf_to_a(ns):
 
 def _pdf_salvage(ns):
     return PDFToolkit.salvage(ns.input, ns.output, ns.ocr_fallback, ns.dpi)
+
+
+def _pdf_repair(ns):
+    return PDFToolkit.repair(ns.input, ns.output)
 
 
 def _image_convert(ns):
@@ -190,6 +203,30 @@ def _image_social_pack(ns):
     return ImageToolkit.export_social_pack(ns.input, ns.output, ns.mode)
 
 
+def _image_grayscale(ns):
+    return ImageToolkit.grayscale(ns.input, ns.output)
+
+
+def _image_sharpen(ns):
+    return ImageToolkit.sharpen(ns.input, ns.output, ns.radius, ns.percent, ns.threshold)
+
+
+def _image_circle_crop(ns):
+    return ImageToolkit.circle_crop(ns.input, ns.output)
+
+
+def _image_split_tiles(ns):
+    return ImageToolkit.split_tiles(ns.input, ns.output, ns.rows, ns.cols)
+
+
+def _image_upscale(ns):
+    return ImageToolkit.upscale(ns.input, ns.output, ns.scale)
+
+
+def _image_blur_faces(ns):
+    return ImageToolkit.blur_faces(ns.input, ns.output, ns.mode)
+
+
 def _audio_convert(ns):
     return AudioToolkit.convert(ns.input, ns.output)
 
@@ -234,6 +271,10 @@ def _audio_transcribe_chunks(ns):
 
 def _audio_pad_to_duration(ns):
     return AudioToolkit.pad_to_duration(ns.input, ns.output, ns.target_ms, ns.position)
+
+
+def _audio_to_srt(ns):
+    return AudioToolkit.transcript_to_srt(ns.input, ns.output)
 
 
 def _video_convert(ns):
@@ -284,12 +325,22 @@ def _video_reverse(ns):
     return VideoToolkit.reverse(ns.input, ns.output)
 
 
+def _video_mute(ns):
+    return VideoToolkit.mute(ns.input, ns.output)
+
+
 def _video_speed(ns):
     return VideoToolkit.speed(ns.input, ns.output, ns.factor)
 
 
 def _video_subtitle_burn(ns):
     return VideoToolkit.subtitle_burn(ns.input, ns.subtitle, ns.output, ns.preset)
+
+
+def _video_transcribe(ns):
+    return VideoToolkit.transcribe(
+        ns.input, ns.output, ns.model, ns.language, ns.min_silence, ns.silence_thresh, ns.keep
+    )
 
 
 def _video_gif_to_mp4(ns):
@@ -310,6 +361,10 @@ def _video_chroma_cut(ns):
 
 def _video_object_erase(ns):
     return VideoToolkit.object_erase(ns.input, ns.output, ns.box, ns.start, ns.duration)
+
+
+def _video_blur_faces(ns):
+    return VideoToolkit.blur_faces(ns.input, ns.output, ns.every_n_frames, ns.mode)
 
 
 def _office_to_markdown(ns):
@@ -334,6 +389,10 @@ def _returns_reclaim(ns):
 
 def _batch_sweep(ns):
     return sweep(ns.input_dir, ns.output, ns.op, ns.pattern, ns.max_files)
+
+
+def _probe(ns):
+    return ProbeToolkit.probe(ns.input)
 
 
 def _pages_list(value: str) -> list[int]:
@@ -385,6 +444,14 @@ def build_parser() -> argparse.ArgumentParser:
         REQ_OUT,
         (("--pages",), {"type": _pages_list, "default": None}),
     )
+    add(
+        pdf,
+        "tables-to-csv",
+        _pdf_tables_to_csv,
+        IN_ONE,
+        REQ_OUT,
+        (("--pages",), {"type": _pages_list, "default": None}),
+    )
     add(pdf, "to-markdown", _pdf_to_markdown, IN_ONE, OPT_OUT)
     add(
         pdf,
@@ -421,6 +488,7 @@ def build_parser() -> argparse.ArgumentParser:
     add(pdf, "protect", _pdf_protect, IN_ONE, REQ_OUT, (("--password",), {"required": True}))
     add(pdf, "unlock", _pdf_unlock, IN_ONE, REQ_OUT, (("--password",), {"required": True}))
     add(pdf, "images-to-pdf", _pdf_images_to_pdf, IN_MANY, REQ_OUT, (("--quality",), {"type": int, "default": 85}))
+    add(pdf, "from-html", _pdf_from_html, IN_ONE, REQ_OUT)
     add(pdf, "reorder", _pdf_reorder, IN_ONE, REQ_OUT, (("--pages",), {"required": True, "type": _pages_list}))
     add(pdf, "delete", _pdf_delete, IN_ONE, REQ_OUT, (("--pages",), {"required": True, "type": _pages_list}))
     add(
@@ -452,6 +520,7 @@ def build_parser() -> argparse.ArgumentParser:
         (("--dpi",), {"type": int, "default": 150}),
         (("--no-ocr",), {"action": "store_false", "dest": "ocr_fallback"}),
     )
+    add(pdf, "repair", _pdf_repair, IN_ONE, REQ_OUT)
 
     image = categories.add_parser("image").add_subparsers(dest="command", required=True)
     add(image, "convert", _image_convert, IN_ONE, REQ_OUT, (("--quality",), {"type": int, "default": 85}))
@@ -560,6 +629,43 @@ def build_parser() -> argparse.ArgumentParser:
         REQ_OUT,
         (("--mode",), {"default": "center-crop", "choices": ["center-crop", "letterbox"]}),
     )
+    add(image, "grayscale", _image_grayscale, IN_ONE, REQ_OUT)
+    add(
+        image,
+        "sharpen",
+        _image_sharpen,
+        IN_ONE,
+        REQ_OUT,
+        (("--radius",), {"type": float, "default": 2.0}),
+        (("--percent",), {"type": int, "default": 150}),
+        (("--threshold",), {"type": int, "default": 3}),
+    )
+    add(image, "circle-crop", _image_circle_crop, IN_ONE, REQ_OUT)
+    add(
+        image,
+        "split-tiles",
+        _image_split_tiles,
+        IN_ONE,
+        REQ_OUT,
+        (("--rows",), {"type": int, "default": 2}),
+        (("--cols",), {"type": int, "default": 2}),
+    )
+    add(
+        image,
+        "upscale",
+        _image_upscale,
+        IN_ONE,
+        REQ_OUT,
+        (("--scale",), {"type": int, "default": 2, "choices": [2, 3]}),
+    )
+    add(
+        image,
+        "blur-faces",
+        _image_blur_faces,
+        IN_ONE,
+        REQ_OUT,
+        (("--mode",), {"default": "pixelate", "choices": ["pixelate", "blur"]}),
+    )
 
     audio = categories.add_parser("audio").add_subparsers(dest="command", required=True)
     add(audio, "convert", _audio_convert, IN_ONE, REQ_OUT)
@@ -624,6 +730,7 @@ def build_parser() -> argparse.ArgumentParser:
         (("--target-ms",), {"type": int, "required": True, "dest": "target_ms"}),
         (("--position",), {"default": "end", "choices": ["end", "start", "middle"]}),
     )
+    add(audio, "to-srt", _audio_to_srt, IN_ONE, REQ_OUT)
 
     video = categories.add_parser("video").add_subparsers(dest="command", required=True)
     add(video, "convert", _video_convert, IN_ONE, REQ_OUT)
@@ -689,6 +796,7 @@ def build_parser() -> argparse.ArgumentParser:
         (("--margin",), {"type": int, "default": 10}),
     )
     add(video, "reverse", _video_reverse, IN_ONE, REQ_OUT)
+    add(video, "mute", _video_mute, IN_ONE, REQ_OUT)
     add(video, "speed", _video_speed, IN_ONE, REQ_OUT, (("--factor",), {"type": float, "default": 2.0}))
     add(
         video,
@@ -698,6 +806,18 @@ def build_parser() -> argparse.ArgumentParser:
         REQ_OUT,
         (("--subtitle",), {"required": True}),
         (("--preset",), {"default": "plain", "choices": ["plain", "karaoke", "social"]}),
+    )
+    add(
+        video,
+        "transcribe",
+        _video_transcribe,
+        IN_ONE,
+        REQ_OUT,
+        (("--model",), {"default": None}),
+        (("--language",), {"default": None}),
+        (("--min-silence",), {"type": int, "default": 1000, "dest": "min_silence"}),
+        (("--silence-thresh",), {"type": float, "default": None, "dest": "silence_thresh"}),
+        (("--keep",), {"type": int, "default": 200}),
     )
     add(video, "gif-to-mp4", _video_gif_to_mp4, IN_ONE, REQ_OUT)
     add(
@@ -740,6 +860,15 @@ def build_parser() -> argparse.ArgumentParser:
         (("--start",), {"default": None}),
         (("--duration",), {"default": None}),
     )
+    add(
+        video,
+        "blur-faces",
+        _video_blur_faces,
+        IN_ONE,
+        REQ_OUT,
+        (("--every-n-frames",), {"type": int, "default": 5, "dest": "every_n_frames"}),
+        (("--mode",), {"default": "pixelate", "choices": ["pixelate", "blur"]}),
+    )
 
     office = categories.add_parser("office").add_subparsers(dest="command", required=True)
     add(office, "to-markdown", _office_to_markdown, IN_ONE, OPT_OUT)
@@ -770,6 +899,10 @@ def build_parser() -> argparse.ArgumentParser:
         OPT_OUT,
         (("--search-dir",), {"default": "_returns", "dest": "search_dir"}),
     )
+
+    probe_cat = categories.add_parser("probe", help="sniff a file and rank applicable tools")
+    probe_cat.add_argument("input")
+    probe_cat.set_defaults(handler=_probe)
 
     return parser
 
