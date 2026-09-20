@@ -8,8 +8,18 @@ packages = ["src/media_tools"]
 [project]
 name = "media-tools"
 version = "0.1.0"
-description = "MCP server with multimedia processing tools (PDF, video, image, audio, office docs)"
+description = "MCP server with 90 local multimedia tools (PDF, video, image, audio, office docs, PII redaction)"
+readme = "README.md"
 license = "MIT"
+authors = [{ name = "Javier Rodeiro" }]
+keywords = ["mcp", "fastmcp", "pdf", "ocr", "ffmpeg", "pii", "office"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia",
+]
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = [
@@ -53,6 +63,10 @@ media-tools-server-video = "media_tools.server:main_video"
 media-tools-server-office = "media_tools.server:main_office"
 media-tools-server-ai = "media_tools.server:main_ai"
 media-tools-server-tts = "media_tools.server:main_tts"
+
+[project.urls]
+Homepage = "https://github.com/jrodeiro5/media-tools"
+Issues = "https://github.com/jrodeiro5/media-tools/issues"
 
 [project.optional-dependencies]
 pii = [

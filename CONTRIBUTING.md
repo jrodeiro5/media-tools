@@ -3,19 +3,21 @@
 ## Setup
 
 ```bash
-uv venv .venv --python 3.11
-source .venv/bin/activate
-uv pip install -e ".[dev]"
-pre-commit install
+uv sync --group dev              # add --extra pii for the PII tools
+uvx pre-commit install
 ```
+
+External binaries are not Python deps: `brew install ffmpeg tesseract officecli && brew install --cask libreoffice`.
 
 ## Before opening a PR
 
-- Run `pre-commit run --all-files` — ruff, ruff-format, bandit, mypy, semgrep,
-  and gitleaks all need to pass.
-- Add or update tests for behavior you change.
+- Run `uvx pre-commit run --all-files` — ruff, ruff-format, bandit, mypy, semgrep,
+  and gitleaks all need to pass. Fix the code; do not weaken the config.
+- Tests are assert scripts, not pytest: add or update `tests/check_<area>.py` and run it with
+  `.venv/bin/python tests/check_<area>.py`.
 - Keep tools scoped to their toolkit (`src/media_tools/tools/<category>.py`)
   and register new MCP tools with a category tag in `server.py`.
+- Tools stay local-first and never write in place; anything that calls a cloud service must say so in its docstring and README row.
 
 ## Adding a new tool
 
