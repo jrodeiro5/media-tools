@@ -1,10 +1,24 @@
 ---
+authoritative: false
+authority-reason: openwiki run ended status=interrupted, so these pages are part old and part new
 type: Quickstart
 title: media-tools — Quickstart
 description: "Getting started with media-tools: a Python MCP server and CLI providing 49+ multimedia processing tools across PDF, image, audio, video, Office, AI, and Text-to-Speech categories."
 resource: /pyproject.toml
 tags: [overview, getting-started, MCP, CLI, multimedia]
-generated: { by: openwiki/local-ornith-35b, at: 2026-08-22T14:25:15.555Z }
+generated: { by: "openwiki/0.5.2", at: "2026-09-19T19:14:37.934Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-19T19:14:37.934Z
+sources:
+  - id: openwiki-source-05ccef8d4cf1698187f20464
+    resource: repo://pyproject.toml
+  - id: openwiki-source-23775c3de52f3ab95a13cb8b
+    resource: repo://README.md
+  - id: openwiki-source-f24618d3fb91081293690cc3
+    resource: repo://src/media_tools/cli.py
+  - id: openwiki-source-a032591a12d56d656efb799c
+    resource: repo://src/media_tools/server.py
 ---
 
 ## What Is media-tools?
@@ -51,7 +65,7 @@ media-tools-server
 PORT=9090 media-tools-server
 ```
 
-The server exposes all 37+ tools via `http://127.0.0.1:8020/mcp`.
+The server exposes all 49 tools via `http://127.0.0.1:8020/mcp`.
 
 ### Use the CLI
 

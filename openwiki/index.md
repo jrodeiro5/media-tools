@@ -1,6 +1,8 @@
 ---
-okf_version: "0.1"
-generated: { by: openwiki/local-ornith-35b, at: 2026-08-22T14:25:15.555Z }
+authoritative: false
+authority-reason: openwiki run ended status=interrupted, so these pages are part old and part new
+okf_version: "0.2"
+generated: { by: openwiki/local-ornith-35b, at: 2026-09-19T20:06:13.453Z }
 ---
 
 # Files
@@ -10,5 +12,7 @@ generated: { by: openwiki/local-ornith-35b, at: 2026-08-22T14:25:15.555Z }
 # Directories
 
 - [architecture](architecture/)
+- [concepts](concepts/)
 - [operations](operations/)
 - [tools](tools/)
+- [workflows](workflows/)

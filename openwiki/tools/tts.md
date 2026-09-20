@@ -1,4 +1,6 @@
 ---
+authoritative: false
+authority-reason: openwiki run ended status=interrupted, so these pages are part old and part new
 type: Tool Reference
 title: Text-to-Speech
 description: "1 MCP tool (text_to_speech) that converts text to speech locally via a LiteLLM proxy running the Kokoro TTS model. No API key, no network egress. Supports wav (native) and mp3 (via pydub/ffmpeg). No CLI command."
@@ -12,7 +14,17 @@ openwiki:
   test_paths: []
   invariants: [Endpoint is built from LITELLM_URL env var, not from any tool argument; no API key or network egress required.]
   validation_commands: ["media-tools-server-tts"]
-generated: { by: openwiki/local-ornith-35b, at: 2026-08-22T14:25:15.555Z }
+generated: { by: "openwiki/0.5.2", at: "2026-09-19T19:14:37.934Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-19T19:14:37.934Z
+sources:
+  - id: openwiki-source-05ccef8d4cf1698187f20464
+    resource: repo://pyproject.toml
+  - id: openwiki-source-a032591a12d56d656efb799c
+    resource: repo://src/media_tools/server.py
+  - id: openwiki-source-30b3bd03b5a87d9d89e0da7b
+    resource: repo://src/media_tools/tools/tts.py
 ---
 
 ## Overview
@@ -44,7 +56,7 @@ The `TTSToolkit` class provides a single text-to-speech operation exposed **only
 | `voice` | `""` | Kokoro voice id (e.g. `af_heart`, `ef_dora`). Empty picks the default for `language`. |
 | `audio_format` | `wav` | `wav` (native) or `mp3` (converted via pydub/ffmpeg) |
 | `language` | `en` | ISO code that selects the default voice and G2P |
-| `timeout` | `300` | Seconds to wait for generation |
+| `timeout` | `300` | Seconds to wait for generation. A library parameter of `TTSToolkit.convert`; the MCP tool `text_to_speech` does not expose it, so the 300s default always applies when used over MCP. |
 
 ### Default voices by language
 
