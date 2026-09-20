@@ -2,7 +2,7 @@
 
 <p align="center">
   An MCP server that lets your AI client work with PDFs, images, audio, video and Office files.<br>
-  87 tools, one command to start.
+  90 tools, one command to start.
 </p>
 
 <p align="center">
@@ -54,7 +54,7 @@ Set `PORT` to change the port. To expose only one family of tools (and keep the 
 <tr><td><b>Image</b> · 18</td><td>convert, resize, compress, crop, rotate, flip, text overlay, border, merge, watermark, collage, blur, OCR, info, remove background, brand kit, image to video, social pack</td></tr>
 <tr><td><b>Audio</b> · 12</td><td>convert, trim, fade, speed, merge, normalize, chunk on silence, transcribe, transcribe chunks, pad to duration, info, audio to video</td></tr>
 <tr><td><b>Video</b> · 21</td><td>convert, trim, compress, probe, to GIF, GIF to MP4, extract audio, merge, crop, rotate, resize, watermark, reverse, speed, subtitle burn, extract frames, thumbnail, contact sheet, social pack, chroma cut, object erase</td></tr>
-<tr><td><b>Office</b> · 2</td><td>to Markdown, to PDF (via LibreOffice)</td></tr>
+<tr><td><b>Office</b> · 5</td><td>to Markdown, to PDF (via LibreOffice), inspect and edit .docx/.xlsx/.pptx (via OfficeCLI), URL to Markdown (via Firecrawl, cloud)</td></tr>
 <tr><td><b>PII</b> · 2</td><td>find Spanish/EU identifiers (DNI/NIF, NIE, passport, IBAN, email, phone), redact them from a PDF</td></tr>
 <tr><td><b>AI</b> · 3</td><td>summarize, question answering, translate</td></tr>
 <tr><td><b>Speech</b> · 1</td><td>text to speech</td></tr>
@@ -76,7 +76,7 @@ Set `PORT` to change the port. To expose only one family of tools (and keep the 
 
 **Video:** `video_convert` `video_trim` `video_compress` `video_to_gif` `gif_to_mp4` `video_probe` `video_extract_audio` `video_merge` `video_crop` `video_rotate` `video_resize` `video_watermark` `video_reverse` `video_speed` `video_subtitle_burn` `video_extract_frames` `video_thumbnail` `video_contact_sheet` `video_export_social_pack` `video_chroma_cut` `video_object_erase`
 
-**Office:** `office_to_markdown` `office_to_pdf`
+**Office:** `office_to_markdown` `office_to_pdf` `office_inspect` `office_edit` `url_to_markdown`
 
 **PII:** `pii_scan` `pii_redact`
 
@@ -104,6 +104,7 @@ The CLI covers most server tools, some under shorter names (`pdf reorder`, `vide
 
 - Python 3.11 or newer and [uv](https://github.com/astral-sh/uv)
 - `ffmpeg` for audio and video, LibreOffice (`soffice`) for Office conversion, `tesseract` for OCR. On macOS: `brew install ffmpeg tesseract && brew install --cask libreoffice`
+- Optional: [OfficeCLI](https://github.com/iOfficeAI/OfficeCLI) for `office_inspect`/`office_edit` (`brew install officecli`); the Firecrawl CLI plus `FIRECRAWL_API_KEY` for `url_to_markdown` (sends the URL to Firecrawl, unlike every other tool)
 - Optional: a [LiteLLM](https://github.com/BerriAI/litellm) proxy for the AI tools, text to speech, and transcription
 
 ## Development

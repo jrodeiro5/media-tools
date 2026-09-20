@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+import shutil
+import subprocess
 from pathlib import Path
 
 import anydoc
@@ -75,3 +78,68 @@ class OfficeToolkit:
             except OSError:
                 pass  # Files may already match
         return desc
+
+    @staticmethod
+    def inspect(input_path: str, mode: str = "outline", page: str | None = None) -> str:
+        """Read a .docx/.xlsx/.pptx with OfficeCLI: mode is text, outline, stats, issues, annotated or forms."""
+        err = validate_input(input_path)
+        if err:
+            return err
+        if mode not in _INSPECT_MODES:
+            return f"Error: mode must be one of {', '.join(sorted(_INSPECT_MODES))}"
+        cmd = ["officecli", "view", input_path, mode] + (["--page", page] if page else [])
+        return _run_cli(cmd)
+
+    @staticmethod
+    def edit(input_path: str, output: str, commands: str) -> str:
+        """Edit a .docx/.xlsx/.pptx on a copy, never in place. `commands` is OfficeCLI's batch JSON array,
+        e.g. [{"command":"set","path":"/body/p[1]","props":{"bold":"true"}}]."""
+        err = validate_input(input_path) or validate_output_dir(output)
+        if err:
+            return err
+        if Path(output).resolve() == Path(input_path).resolve():
+            return "Error: output must differ from input; edits are never in place"
+        try:
+            json.loads(commands)
+        except ValueError as exc:
+            return f"Error: commands is not valid JSON: {exc}"
+        shutil.copyfile(input_path, output)
+        res = _run_cli(["officecli", "batch", output, "--commands", commands])
+        if res.startswith("Error"):
+            Path(output).unlink(missing_ok=True)
+            return res
+        return f"Edited copy → {output}\n{res}"
+
+    @staticmethod
+    def url_to_markdown(url: str, output: str | None = None) -> str:
+        """Fetch a web page or PDF URL as Markdown via the Firecrawl CLI. Cloud call: the URL is sent to
+        Firecrawl and FIRECRAWL_API_KEY must be set. Local files never leave the machine; use office_to_markdown."""
+        if not url.startswith(("http://", "https://")):
+            return "Error: url must start with http:// or https://"
+        if output:
+            err = validate_output_dir(output)
+            if err:
+                return err
+        res = _run_cli(["firecrawl", "scrape", url, "--format", "markdown", "--only-main-content"])
+        if res.startswith("Error") or not output:
+            return res
+        Path(output).write_text(res, encoding="utf-8")
+        return f"Saved markdown → {output}"
+
+
+_INSPECT_MODES = {"text", "outline", "stats", "issues", "annotated", "forms"}
+
+
+def _run_cli(cmd: list[str]) -> str:
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    except FileNotFoundError:
+        return f"Error: {cmd[0]} not found" + (
+            "; install with: brew install officecli" if cmd[0] == "officecli" else ""
+        )
+    except subprocess.TimeoutExpired:
+        return "Error: officecli timed out"
+    if r.returncode != 0:
+        logger.error("officecli failed: %s", r.stderr.strip())
+        return f"Error: {(r.stderr or r.stdout).strip()}"
+    return r.stdout

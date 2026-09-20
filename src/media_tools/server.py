@@ -625,6 +625,24 @@ def office_to_markdown(input_path: str, output: str | None = None) -> str:
     return OfficeToolkit.to_markdown(input_path, output)
 
 
+@mcp.tool(name="office_inspect", tags={"office"})
+def office_inspect(input_path: str, mode: str = "outline", page: str | None = None) -> str:
+    """Read a .docx/.xlsx/.pptx structure via OfficeCLI: mode text, outline, stats, issues, annotated or forms."""
+    return OfficeToolkit.inspect(input_path, mode, page)
+
+
+@mcp.tool(name="office_edit", tags={"office"})
+def office_edit(input_path: str, output: str, commands: str) -> str:
+    """Edit a .docx/.xlsx/.pptx into a new file via OfficeCLI batch JSON (array of {command, path, props...})."""
+    return OfficeToolkit.edit(input_path, output, commands)
+
+
+@mcp.tool(name="url_to_markdown", tags={"office"})
+def url_to_markdown(url: str, output: str | None = None) -> str:
+    """Fetch a web page or PDF URL as Markdown via Firecrawl (cloud; needs FIRECRAWL_API_KEY)."""
+    return OfficeToolkit.url_to_markdown(url, output)
+
+
 @mcp.tool(name="office_to_pdf", tags={"office"})
 def office_to_pdf(input_path: str, output: str) -> str:
     """Convert Office documents to PDF using LibreOffice."""
