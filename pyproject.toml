@@ -7,7 +7,7 @@ packages = ["src/media_tools"]
 
 [project]
 name = "media-tools"
-version = "0.1.0"
+version = "0.2.0"
 description = "MCP server with 100+ local multimedia tools (PDF, video, image, audio, office docs, PII redaction)"
 readme = "README.md"
 license = "MIT"
