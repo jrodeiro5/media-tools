@@ -1,0 +1,26 @@
+CONTRIBUTING.md
+  s_711b3532f7ce7c::t_d07da6fda718f5 6-7,10-11,14-17,20
+CHANGELOG.md
+  s_711b3532f7ce7c::t_d07da6fda718f5 1-13
+pyproject.toml
+  s_711b3532f7ce7c::t_d07da6fda718f5 11-12,14-22,67-69
+  s_711b3532f7ce7c::t_0db7852643adfb 70
+.github/CODEOWNERS
+  s_711b3532f7ce7c::t_644d2bba37ed71 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e7d1a1c969de8664328848bab841090209de4366",
+  "prompts": {},
+  "sessions": {
+    "s_711b3532f7ce7c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cf59ad8b-3285-4b4d-8155-d29aef4773a9",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
