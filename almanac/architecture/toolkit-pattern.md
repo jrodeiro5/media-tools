@@ -38,6 +38,14 @@ sources:
     type: file
     target: pyproject.toml
     title: "pyproject.toml — override-dependencies forcing pillow>=12.3.0"
+  - id: pii-py
+    type: file
+    target: src/media_tools/tools/pii.py
+    title: "PiiToolkit implementation"
+  - id: probe-py
+    type: file
+    target: src/media_tools/tools/probe.py
+    title: "ProbeToolkit implementation"
 ---
 
 # Toolkit pattern
@@ -66,7 +74,7 @@ Toolkit methods call the shared helpers in [Utilities](../architecture/utilities
 | `PDFToolkit` | `pdf.py` | 1030 | PDF manipulation [@pdf-py] |
 | `VideoToolkit` | `video.py` | 519 | Video manipulation [@video-py] |
 | `ImageToolkit` | `image.py` | 557 | Image manipulation [@image-py] |
-| `OfficeToolkit` | `office.py` | 73 | Office document conversion [@office-py] |
+| `OfficeToolkit` | `office.py` | 146 | Convert, inspect, edit, URL-to-Markdown [@office-py] |
 | `AIToolkit` | `ai.py` | 136 | AI-powered document analysis [@ai-py] |
 | `TTSToolkit` | `tts.py` | 114 | Text-to-speech [@tts-py] |
 | `AudioToolkit` | `audio.py` | 177 | Audio manipulation [@audio-py] |
@@ -101,20 +109,24 @@ This uniform error handling means:
 Each toolkit pulls in its own dependencies:
 
 - **PDFToolkit**: `pypdf`, `pypdfium2`, `pdfplumber`, `liteparse` (optional),
-  `reportlab`, `pdf2docx` [@pdf-py]
+  `reportlab` [@pdf-py]. `pdf2docx` (AGPL PyMuPDF) is optional — install it with
+  `uv sync --extra docx`; see [pdf2docx to optional docx extra](../decisions/docx-optional-extra).
 - **ImageToolkit**: `Pillow`, `pytesseract`, `rembg` [@image-py]
 - **AudioToolkit**: `pydub` [@audio-py]
 - **VideoToolkit**: `moviepy`, `opencv-python-headless` [@video-py]
-- **OfficeToolkit**: `anydoc`, `subprocess` (LibreOffice) [@office-py]
+- **OfficeToolkit**: `anydoc` (Markdown), OfficeCLI (`office_inspect`/`office_edit`),
+  Firecrawl (`url_to_markdown`, cloud), LibreOffice (PDF→DOCX fallback) [@office-py]
 - **AIToolkit**: `anydoc`, `litellm` (via HTTP) [@ai-py]
 - **TTSToolkit**: `litellm` (via HTTP), `omlx` (local) [@tts-py]
+- **PiiToolkit**: `pdfplumber` (PDF), `presidio` analyzers (optional) [@pii-py]
+- **ProbeToolkit**: `subprocess`, `zipfile` (lazy `pypdf`/`PIL`) [@probe-py]
 
-The CLI and server import the 5 core toolkits (PDF, Video, Image, Audio,
-Office) at module level, so those dependencies must be installed for any
-invocation. AI and TTS are lazy-imported inside their handler functions —
-`litellm` and `omlx` are loaded only when those tools are invoked. This is
-intentional: it avoids loading heavy VLM and audio model dependencies when
-only PDF or image tools are needed.
+The CLI and server import six toolkit classes at module level (PDF, Video,
+Image, Audio, Office, PII), so those dependencies must be installed for any
+invocation. AI, TTS, and Probe are lazy-imported inside their handler functions
+— `litellm`, `omlx`, and Probe's backends load only when those tools are
+invoked. This is intentional: it avoids loading heavy VLM and audio model
+dependencies when only PDF or image tools are needed.
 
 **Forced Pillow override (security ceiling).** `moviepy==2.2.1` hard-pins
 `pillow<12.0`, while `rembg>=2.0.75` requires `pillow>=12.1.0` — mutually
