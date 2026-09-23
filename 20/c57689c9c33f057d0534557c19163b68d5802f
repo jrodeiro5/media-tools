@@ -1,0 +1,34 @@
+almanac/architecture/mcp-server.md
+  s_73fe7f9edf456c::t_94e4c8750f82bb 17,56-60
+  s_45119db73bd278::t_44a6ec90eab91b 61
+almanac/README.md
+  s_73fe7f9edf456c::t_94e4c8750f82bb 15,41
+almanac/architecture/toolkit-pattern.md
+  s_45119db73bd278::t_369419644767be 74-78,80,82
+almanac/topics.yaml
+  s_73fe7f9edf456c::t_94e4c8750f82bb 19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "20c57689c9c33f057d0534557c19163b68d5802f",
+  "prompts": {},
+  "sessions": {
+    "s_45119db73bd278": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0cd08-4ce8-7c51-b31a-7e3e94288a55",
+        "model": "gpt-5.4-mini"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_73fe7f9edf456c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0c2d8-e28a-7ce0-8eea-d258006da57f",
+        "model": "gpt-5.4-mini"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
