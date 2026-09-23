@@ -71,13 +71,15 @@ Toolkit methods call the shared helpers in [Utilities](../architecture/utilities
 
 | class | file | lines | category |
 |---|---|---|---|
-| `PDFToolkit` | `pdf.py` | 1030 | PDF manipulation [@pdf-py] |
-| `VideoToolkit` | `video.py` | 519 | Video manipulation [@video-py] |
-| `ImageToolkit` | `image.py` | 557 | Image manipulation [@image-py] |
+| `PDFToolkit` | `pdf.py` | 1963 | PDF manipulation [@pdf-py] |
+| `VideoToolkit` | `video.py` | 1263 | Video manipulation [@video-py] |
+| `ImageToolkit` | `image.py` | 919 | Image manipulation [@image-py] |
+| `AudioToolkit` | `audio.py` | 576 | Audio manipulation [@audio-py] |
+| `ProbeToolkit` | `probe.py` | 442 | Sniff file, report metadata, rank applicable tools [@probe-py] |
 | `OfficeToolkit` | `office.py` | 146 | Convert, inspect, edit, URL-to-Markdown [@office-py] |
-| `AIToolkit` | `ai.py` | 136 | AI-powered document analysis [@ai-py] |
+| `AIToolkit` | `ai.py` | 139 | AI-powered document analysis [@ai-py] |
 | `TTSToolkit` | `tts.py` | 114 | Text-to-speech [@tts-py] |
-| `AudioToolkit` | `audio.py` | 177 | Audio manipulation [@audio-py] |
+| `PiiToolkit` | `pii.py` | 101 | PII scan/redact (Presidio) [@pii-py] |
 
 ## Method signature convention
 

@@ -16,7 +16,7 @@ topics:
 
   - slug: toolkits
     title: Toolkits
-    description: The 7 toolkit classes (PDF, Image, Audio, Video, Office, AI, TTS)
+    description: The 9 toolkit classes (PDF, Image, Audio, Video, Office, AI, TTS, PII, Probe)
     parents: [architecture]
 
   - slug: incidents

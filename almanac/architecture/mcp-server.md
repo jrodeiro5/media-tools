@@ -14,7 +14,7 @@ sources:
 
 # MCP server
 
-The MCP server exposes 49 multimedia processing tools through FastMCP's
+The MCP server exposes 104 tools through FastMCP's
 streamable-HTTP transport. It is the primary integration point for MCP
 clients (OpenWebUI, Claude Desktop, agent frameworks).
 
@@ -53,12 +53,12 @@ default. The port is configurable via the `PORT` environment variable.
 
 ## Constraints
 
-- The server imports 5 of 7 `Toolkit` classes at module level (PDF, Video,
-  Image, Audio, Office). AI and TTS are lazy-imported inside their handler
-  functions to defer dependency loading. This means PDF/Image/Audio/Video/Office
-  dependencies (pypdf, Pillow, pydub, etc.) must be installed for any server
-  variant, while `litellm` and `omlx` are loaded only when those tools are
-  invoked.
+- The server imports six of nine `Toolkit` classes at module level (PDF, Video,
+  Image, Audio, Office, PII). AI, TTS, and Probe are lazy-imported inside
+  their handler functions to defer dependency loading. This means the
+  PDF/Image/Audio/Video/Office/PII dependencies (pypdf, Pillow, pydub, etc.)
+  must be installed for any server variant, while `litellm`, `omlx`, and
+  Probe's backends load only when those tools are invoked.
 - The `mcp` package is pinned to `<2` in `pyproject.toml` because FastMCP
   does not yet support the MCP 2.0 spec. This pin will need review when
   FastMCP ships v2 support [@pyproject].

@@ -12,7 +12,7 @@ project context that future agents should not rediscover from scratch.
 
 ## What the repo is
 
-`media-tools` is an MCP server exposing 49 multimedia processing tools
+`media-tools` is an MCP server exposing 104 tools
 covering PDF, image, audio, video, Office documents, and AI-powered document
 analysis. It runs locally via [FastMCP](https://github.com/paulpavad/fastmcp)
 and can be dropped into any MCP-compatible client.
@@ -38,7 +38,7 @@ Do not write pages that restate nearby code.
 
 - [CLI dispatch](architecture/cli-dispatch) — how `media-tools <category> <command>` maps to `Toolkit` methods
 - [MCP server](architecture/mcp-server) — FastMCP registration, scoped servers, transport
-- [Toolkit pattern](architecture/toolkit-pattern) — the shared mental model (CLI and MCP server are thin dispatch layers over `<Name>Toolkit` classes); the 7 toolkit classes, method conventions, dependency map
+- [Toolkit pattern](architecture/toolkit-pattern) — the shared mental model (CLI and MCP server are thin dispatch layers over `<Name>Toolkit` classes); the 9 toolkit classes, method conventions, dependency map
 - [Utilities](architecture/utilities) — shared validation, logging, subprocess helpers
 
 ### Decisions
