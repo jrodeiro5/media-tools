@@ -1,0 +1,21 @@
+almanac/architecture/cli-dispatch.md
+  s_968e76fa33b79f::t_d0166f1eeee5c7 46-48,70-74
+almanac/architecture/toolkit-pattern.md
+  s_968e76fa33b79f::t_d0166f1eeee5c7 126,128-132
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7911ec6b0fe11c7ca592f8cc95005a17eac9259f",
+  "prompts": {},
+  "sessions": {
+    "s_968e76fa33b79f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0d225-fc11-75c0-b2d8-c0011d374dd0",
+        "model": "gpt-5.4-mini"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
