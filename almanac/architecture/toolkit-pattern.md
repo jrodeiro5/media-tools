@@ -123,12 +123,13 @@ Each toolkit pulls in its own dependencies:
 - **PiiToolkit**: `pdfplumber` (PDF), `presidio` analyzers (optional) [@pii-py]
 - **ProbeToolkit**: `subprocess`, `zipfile` (lazy `pypdf`/`PIL`) [@probe-py]
 
-The CLI and server import six toolkit classes at module level (PDF, Video,
+The server imports six toolkit classes at module level (PDF, Video,
 Image, Audio, Office, PII), so those dependencies must be installed for any
-invocation. AI, TTS, and Probe are lazy-imported inside their handler functions
-— `litellm`, `omlx`, and Probe's backends load only when those tools are
-invoked. This is intentional: it avoids loading heavy VLM and audio model
-dependencies when only PDF or image tools are needed.
+invocation; the CLI imports those six plus `ProbeToolkit`. AI, TTS, and Probe
+are lazy-imported inside the server's handler functions — `litellm`, `omlx`,
+and Probe's backends load only when those tools are invoked. This is
+intentional: it avoids loading heavy VLM and audio model dependencies when
+only PDF or image tools are needed.
 
 **Forced Pillow override (security ceiling).** `moviepy==2.2.1` hard-pins
 `pillow<12.0`, while `rembg>=2.0.75` requires `pillow>=12.1.0` — mutually

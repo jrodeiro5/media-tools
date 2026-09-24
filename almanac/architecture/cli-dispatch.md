@@ -43,8 +43,9 @@ CLI/server is useful for testing and ad-hoc work.
 
 ## Dispatch model
 
-`build_parser()` constructs a single `ArgumentParser` with subparsers for each
-toolkit category (`pdf`, `image`, `audio`, `video`, `office`) [@cli-py]. Each category
+`build_parser()` constructs a single `ArgumentParser` with subparsers for nine
+categories — `pdf`, `image`, `audio`, `video`, `office`, `pii`, `batch`,
+`returns`, and `probe` — [@cli-py]. Each category
 has its own set of subcommands.
 
 Handlers are plain functions that take a `Namespace` and return a string:
@@ -66,6 +67,8 @@ any agent parse CLI output without understanding per-tool formats.
   argparse has no third-party dependencies and works in minimal environments.
 - The CLI does not validate file existence before calling the toolkit — that
   validation happens inside each `Toolkit` method via `validate_input()`.
-- The CLI covers only PDF, Image, Audio, Video, and Office categories. AI and
-  TTS tools are server-only (registered via `@mcp.tool` in `server.py` but
-  not wired through `cli.py`).
+- The CLI covers nine categories — pdf, image, audio, video, office, pii,
+  batch, returns, and probe. AI and TTS tools are server-only (registered via
+  `@mcp.tool` in `server.py` but not wired through `cli.py`). `batch sweep`
+  and `returns reclaim` are backed by `media_tools.sweep` and a `utils` helper
+  rather than a `Toolkit` class.
