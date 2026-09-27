@@ -1,0 +1,19 @@
+.jolli-smoke-test4.txt
+  s_1369c5b6842df7::t_49899696eeeee6 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "93a5603109d5df42b1549b8de219aed3c1928d97",
+  "prompts": {},
+  "sessions": {
+    "s_1369c5b6842df7": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f1d51ad2bffe14UdGJAVTGcnax",
+        "model": "muse-spark-1.3-contributor-free"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
