@@ -1,0 +1,19 @@
+.jolli-smoke-test2.md
+  s_893695fcdd08ab::t_439226579ecb65 1-13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2f0f7d0f4df4ebf510cf4a9b5127add44b2a255c",
+  "prompts": {},
+  "sessions": {
+    "s_893695fcdd08ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "29269c11-50e7-4678-ba65-43df9aea67c5",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
