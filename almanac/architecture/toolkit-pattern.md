@@ -46,6 +46,10 @@ sources:
     type: file
     target: src/media_tools/tools/probe.py
     title: "ProbeToolkit implementation"
+  - id: vision-py
+    type: file
+    target: src/media_tools/tools/_vision.py
+    title: "_vision.py — shared face detection, obscuring, and model cache"
 ---
 
 # Toolkit pattern
@@ -140,6 +144,30 @@ the metadata conflict, and 12.3.0 carries the security patches the older floor
 lacks. Do not "fix" the override down to satisfy moviepy — that reintroduces
 the patched CVEs; revisit only if moviepy ships a release that accepts
 `pillow>=12`.
+
+## Shared vision helper (`_vision.py`)
+
+`image.py` and `video.py` both import `media_tools.tools._vision` lazily, inside
+their handler functions, for face detection, face obscuring, and first-run model
+caching. It is a private module (not exported from `tools/__init__.py`), so it
+is not a toolkit and has no CLI handler or `@mcp.tool` registration.
+
+Its invariant: **models are never vendored into git.** On first run each asset
+downloads to `~/.cache/media-tools/models/<filename>`; every asset is SHA256
+pinned and re-downloaded when the stored hash mismatches. With no cached file
+and no network, `ensure_asset` raises `RuntimeError("Error: ...")`, which the
+toolkit wrappers return directly — matching the toolkit error convention rather
+than leaking an exception.
+
+- `ensure_asset(key)` — downloads, pins, and caches an asset by key; raises
+  `RuntimeError` on offline or hash mismatch.
+- `detect_faces()` / `obscure_boxes()` — Haar cascade face boxes plus
+  pixelate/Gaussian-blur (face redaction in the image tools).
+- `iou()` / `track_boxes()` — greedy IoU matching of detections across video
+  frames.
+
+Licenses verified 2026-09-20: the Haar cascade is Intel BSD-style (redistribute
+with notice), the FSRCNN model is Apache-2.0 — no copyleft, no NC [@vision-py].
 
 ## Adding a new toolkit
 
