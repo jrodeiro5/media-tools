@@ -1,0 +1,20 @@
+almanac/architecture/toolkit-pattern.md
+  s_0f2713b9d65114::t_25afa486836e45 49-52,148-170
+  s_0f2713b9d65114::t_ad00e3a38528e6 171
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3ea300a617d0fdcf2968ff118eae1460df582a88",
+  "prompts": {},
+  "sessions": {
+    "s_0f2713b9d65114": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0e6db-c449-76d1-a607-6b7fd9d4c7ab",
+        "model": "gpt-5.4-mini"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
