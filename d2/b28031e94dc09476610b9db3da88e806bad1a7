@@ -1,0 +1,25 @@
+almanac/decisions/README.md
+  s_b0e06efa6cd664::t_0f5242e3bec07a 14-15
+  s_b0e06efa6cd664::t_52ff70879c80e0 1-13,16-25
+almanac/incidents/README.md
+  s_b0e06efa6cd664::t_52ff70879c80e0 1-11,13-18
+  s_b0e06efa6cd664::t_0f5242e3bec07a 12
+almanac/README.md
+  s_b0e06efa6cd664::t_52ff70879c80e0 37-39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d2b28031e94dc09476610b9db3da88e806bad1a7",
+  "prompts": {},
+  "sessions": {
+    "s_b0e06efa6cd664": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1008d-3716-7c11-9848-18110869421d",
+        "model": "gpt-5.4-mini"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
