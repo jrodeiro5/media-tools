@@ -34,20 +34,9 @@ Do not write pages that restate nearby code.
 
 ## Page inventory
 
-### Architecture
-
-- [CLI dispatch](architecture/cli-dispatch) — how `media-tools <category> <command>` maps to `Toolkit` methods
-- [MCP server](architecture/mcp-server) — FastMCP registration, scoped servers, transport
-- [Toolkit pattern](architecture/toolkit-pattern) — the shared mental model (CLI and MCP server are thin dispatch layers over `<Name>Toolkit` classes); the 9 toolkit classes, method conventions, dependency map
-- [Utilities](architecture/utilities) — shared validation, logging, subprocess helpers
-
-### Decisions
-
-- [Local TTS uses Kokoro, not Chatterbox](decisions/local-tts-kokoro-not-chatterbox) — why Kokoro was chosen, Chatterbox's autoregressive failure mode, omlx patches
-
-### Incidents
-
-- [keyv/Cacheable npm worm (Shai-Hulud)](incidents/keyv-npm-worm-audit) — machine audit procedure and findings
+- [Architecture](architecture) — the dispatch-over-toolkits design: CLI dispatch, the MCP server, the toolkit pattern, and shared utilities.
+- [Decisions](decisions) — the AGPL docx-extra and local-TTS-Kokoro choices.
+- [Incidents](incidents) — the keyv/Cacheable npm worm machine audit.
 
 ## Topic Taxonomy
 
