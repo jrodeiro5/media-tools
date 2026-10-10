@@ -1,0 +1,24 @@
+almanac/architecture/toolkit-pattern.md
+  s_7263bd124ff39e::t_0f3fde38d5f3cb 190-191
+almanac/README.md
+  s_7263bd124ff39e::t_ef03692e8febbb 40-41
+almanac/architecture/refusals.md
+  s_7263bd124ff39e::t_441f99e8ba9605 1-31,33-44,46-49,51-52,54-69
+  s_7263bd124ff39e::t_ac94d6a5bdf931 32,45,50,53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "65aa85fa94176af44c6728a1d5ed46b51e7d2910",
+  "prompts": {},
+  "sessions": {
+    "s_7263bd124ff39e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a124c3-f80b-72d1-a2c0-d1da289352a4",
+        "model": "gpt-5.4-mini"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
