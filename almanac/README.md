@@ -37,6 +37,8 @@ Do not write pages that restate nearby code.
 - [Architecture](architecture) — the dispatch-over-toolkits design: CLI dispatch, the MCP server, the toolkit pattern, and shared utilities.
 - [Decisions](decisions) — the AGPL docx-extra and local-TTS-Kokoro choices.
 - [Incidents](incidents) — the keyv/Cacheable npm worm machine audit.
+- [Refusals](architecture/refusals) — the shared refusal-ticket module and its
+  stable error codes.
 
 ## Topic Taxonomy
 

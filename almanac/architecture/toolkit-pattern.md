@@ -187,3 +187,5 @@ To add a new toolkit:
   toolkit methods.
 - [MCP server](../architecture/mcp-server) — how the same methods are
   registered as MCP tools and scoped servers.
+- [Refusals](../architecture/refusals) — the shared module that produces every
+  toolkit refusal string and its stable error codes.
