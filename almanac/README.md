@@ -39,6 +39,8 @@ Do not write pages that restate nearby code.
 - [Incidents](incidents) — the keyv/Cacheable npm worm machine audit.
 - [Refusals](architecture/refusals) — the shared refusal-ticket module and its
   stable error codes.
+- [Integrations](architecture/integrations) — the LiteLLM proxy and omlx
+  stack that serves both TTS (Kokoro) and STT (whisper).
 
 ## Topic Taxonomy
 
