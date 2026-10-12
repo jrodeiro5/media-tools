@@ -1,0 +1,23 @@
+almanac/architecture/integrations.md
+  s_07a615b8c07b4f::t_688d235218123c 39,49-50
+  s_07a615b8c07b4f::t_351eea5bab8eeb 1-38,40-41,44-48,51-75
+  s_07a615b8c07b4f::t_34e9f1d3959c93 42-43
+almanac/README.md
+  s_07a615b8c07b4f::t_0b250a9556d1db 42-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "62ca4d8da9f103a039ba1be8a85ff1870ef23ecc",
+  "prompts": {},
+  "sessions": {
+    "s_07a615b8c07b4f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12f1a-0cb7-7772-89d0-de39d37cfd07",
+        "model": "gpt-5.4-mini"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
