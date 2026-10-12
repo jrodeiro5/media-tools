@@ -1,0 +1,71 @@
+.agents/skills/media-use/scripts/lib/manifest.mjs
+  s_d7355368e4d7c3::t_a031d9293695d3 116-191
+  s_d7355368e4d7c3::t_1ef67900d12221 113-115
+  s_d7355368e4d7c3::t_957917daebfb13 192-194
+  s_d7355368e4d7c3::t_3a8c4ea276540e 1-112,195-235
+pyproject.toml
+  s_d7355368e4d7c3::t_b7bc76bbb8e01b 101
+.agents/skills/editor/.github/workflows/release.yml
+  s_d7355368e4d7c3::t_a966938100455d 19
+  s_d7355368e4d7c3::t_ca1e362dc094a1 25-28
+  s_d7355368e4d7c3::t_78957be860a23b 16-18
+  s_d7355368e4d7c3::t_726701130f6681 20-24
+  s_d7355368e4d7c3::t_1bfb389f068508 29-31
+  s_d7355368e4d7c3::t_7ef2854dfe8697 1-15,32-49
+.agents/skills/media-use/scripts/lib/specs.mjs
+  s_d7355368e4d7c3::t_2bae0a6f939d57 32-36
+  s_d7355368e4d7c3::t_a327cf5b2c2b4f 29-31
+  s_d7355368e4d7c3::t_2bf4c33253358d 37-39
+  s_d7355368e4d7c3::t_39cecda927129e 1-28,40-135
+.agents/skills/editor/.github/workflows/ci.yml
+  s_d7355368e4d7c3::t_83f7a9c4d74ac6 20-24
+  s_d7355368e4d7c3::t_29319362d7bc18 17-19
+  s_d7355368e4d7c3::t_a7ad49ea4bc8f4 25-27
+  s_d7355368e4d7c3::t_f73d1145cb2128 1-16,28-37
+.agents/skills/media-use/scripts/lib/telemetry.mjs
+  s_d7355368e4d7c3::t_4449483dc9d281 19
+  s_d7355368e4d7c3::t_f72200c7161e4b 16-18
+  s_d7355368e4d7c3::t_caf5b5ff5a3828 20-22
+  s_d7355368e4d7c3::t_e1387392a6eda8 1-15,23-222
+.agents/skills/media-use/scripts/audio-duck.mjs
+  s_d7355368e4d7c3::t_7b9d80e880f100 114-124
+  s_d7355368e4d7c3::t_83c245a8dcc9ca 105-107,111-112,125-127
+  s_d7355368e4d7c3::t_c392961d7793a0 108-110,113
+  s_ef61e51839df4f::t_2c020963f610ee 1-104,128-137
+.agents/skills/editor/SKILL.md
+  s_bfb115edf5b144::t_1f2983d87d0c1a 1-356
+.agents/skills/media-use/SKILL.md
+  s_bfb115edf5b144::t_b4b5014185dbdb 1-97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "dd614d777dffca6dc59942aef96a469ea822e2c7",
+  "prompts": {},
+  "sessions": {
+    "s_bfb115edf5b144": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a10552a3-0039-48c0-9b51-b177bb39176c",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_d7355368e4d7c3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed41bceceffe4qG4pFdH7L4min",
+        "model": "unknown"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    },
+    "s_ef61e51839df4f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "20cafce8-0383-489c-af9b-4dcb95d95564",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
