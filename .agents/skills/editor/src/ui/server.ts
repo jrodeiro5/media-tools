@@ -1,0 +1,679 @@
+import { randomBytes } from 'node:crypto';
+import { createWriteStream, existsSync } from 'node:fs';
+import { mkdir, readdir, readFile, rename, stat, unlink } from 'node:fs/promises';
+import { basename, dirname, resolve } from 'node:path';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+import { fileURLToPath } from 'node:url';
+import { serve } from '@hono/node-server';
+import { serveStatic } from '@hono/node-server/serve-static';
+import getPort from 'get-port';
+import { Hono } from 'hono';
+import open from 'open';
+import { ZodError, z } from 'zod';
+import { buildThumbnailArgs } from '../ffmpeg/args/preview.js';
+import { probe } from '../ffmpeg/probe.js';
+import { runFfmpeg } from '../ffmpeg/run.js';
+import { appendOp, readSession, SessionCorruptError, snapshotsDir } from '../session/store.js';
+import type { SessionEntry } from '../session/types.js';
+import {
+  buildFrameAtPlan,
+  CompileError,
+  checkExportable,
+  compileTimeline,
+} from '../timeline/compile.js';
+import {
+  applyVerbs,
+  CompositionConflictError,
+  readComposition,
+  readDocOpLog,
+  redoDocOp,
+  undoLastDocOp,
+} from '../timeline/document-store.js';
+import { buildMediaMap } from '../timeline/media-registry.js';
+import { CompositionOpError } from '../timeline/ops.js';
+import { runPlan } from '../timeline/run-plan.js';
+import type { MediaId } from '../timeline/schema.js';
+import { CompositionVerbSchema } from '../timeline/verbs.js';
+import { ingest } from '../tools/ingest.js';
+import { preview } from '../tools/preview.js';
+import { snapshot } from '../tools/snapshot.js';
+import { undo } from '../tools/undo.js';
+import {
+  ensureWorkspace,
+  getWorkspace,
+  newOutputPath,
+  WorkspaceBoundaryError,
+} from '../workspace.js';
+import { makeVerbContext } from './timeline-tools.js';
+import { isRegisteredTool, TOOL_REGISTRY } from './tool-registry.js';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+// `HERE` resolves to different paths depending on whether we're running
+// the bundled `dist/cli.js` (everything is flattened so `HERE === dist/`)
+// or the un-bundled `src/ui/server.ts` via tsx (HERE === src/ui/). The
+// static UI is built by Vite into `dist/web/` in both cases.
+const STATIC_DIR_CANDIDATES = [
+  resolve(HERE, 'web'), // bundled cli.js — dist/web/ is alongside cli.js
+  resolve(HERE, '../../dist/web'), // tsx src/ui/server.ts — two levels up
+];
+
+function findStaticDir(): string | null {
+  for (const candidate of STATIC_DIR_CANDIDATES) {
+    if (existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
+export interface UiServerOptions {
+  /** Preferred port. Auto-picks a free port if this one is taken. */
+  port?: number;
+  /** If true, open the system browser after the server starts. */
+  openBrowser?: boolean;
+}
+
+export interface UiServer {
+  url: string;
+  port: number;
+  /** Stop the server (releases the port). */
+  stop: () => Promise<void>;
+}
+
+/**
+ * Resolve an op entry by id for the per-op routes, folding a corrupt session log
+ * into a typed result instead of letting `readSession` throw a raw 500.
+ */
+async function resolveOpEntry(
+  opId: string,
+): Promise<
+  | { kind: 'ok'; entry: SessionEntry }
+  | { kind: 'corrupt'; error: SessionCorruptError }
+  | { kind: 'notfound' }
+> {
+  try {
+    const session = await readSession();
+    const entry = session.entries.find((e) => e.id === opId);
+    return entry ? { kind: 'ok', entry } : { kind: 'notfound' };
+  } catch (err) {
+    if (err instanceof SessionCorruptError) return { kind: 'corrupt', error: err };
+    throw err;
+  }
+}
+
+export async function startUiServer(options: UiServerOptions = {}): Promise<UiServer> {
+  const preferredPort = options.port ?? 5573;
+  const port = await getPort({ port: [preferredPort, preferredPort + 1, preferredPort + 2] });
+
+  const app = new Hono();
+
+  // ─── API ────────────────────────────────────────────────────────────
+
+  app.get('/api/workspace', async (c) => {
+    return c.json({ path: getWorkspace() });
+  });
+
+  app.get('/api/session', async (c) => {
+    try {
+      const session = await readSession();
+      return c.json(session);
+    } catch (err) {
+      // A corrupt session.json now surfaces (instead of silently resetting).
+      // Translate it into an actionable 409 so the pane shows the path + how to
+      // recover rather than a raw 500.
+      if (err instanceof SessionCorruptError) {
+        return c.json({ error: err.message, path: err.path, corrupt: true }, 409);
+      }
+      throw err;
+    }
+  });
+
+  /**
+   * List the tools the UI can dispatch via POST. Lets the frontend build
+   * a picker without hardcoding the registry on its side.
+   */
+  app.get('/api/tools', (c) => {
+    return c.json({ tools: Object.keys(TOOL_REGISTRY).sort() });
+  });
+
+  /**
+   * Run a tool. Body is JSON matching the tool's Zod input schema.
+   * Validates → calls → appends to session log → returns the result.
+   * Zod errors become 400s with structured details; everything else 500.
+   */
+  app.post('/api/tools/:name', async (c) => {
+    const name = c.req.param('name');
+    if (!isRegisteredTool(name)) {
+      return c.json({ error: `Unknown tool: ${name}` }, 404);
+    }
+    const entry = TOOL_REGISTRY[name];
+    if (!entry) return c.json({ error: `Unknown tool: ${name}` }, 404);
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: 'Body must be JSON' }, 400);
+    }
+
+    try {
+      const validated = entry.schema.parse(body);
+      const result = await entry.fn(validated);
+      await appendOp({
+        tool: name,
+        args: body as Record<string, unknown>,
+        result: result as Record<string, unknown>,
+      });
+      return c.json(result);
+    } catch (err) {
+      if (err instanceof ZodError) {
+        return c.json({ error: 'Validation failed', issues: err.issues }, 400);
+      }
+      if (err instanceof WorkspaceBoundaryError) return c.json({ error: err.message }, 403);
+      const message = err instanceof Error ? err.message : String(err);
+      return c.json({ error: message }, 500);
+    }
+  });
+
+  // ─── Timeline document (op-aware, undoable) ───────────────────────
+
+  /** GET /api/timeline — the current composition document. */
+  app.get('/api/timeline', async (c) => {
+    return c.json({ document: await readComposition() });
+  });
+
+  /**
+   * POST /api/timeline/verbs — apply editing verbs to the document as ONE
+   * undoable change (the same op-aware path the agent and CLI use). Body:
+   * `{ verbs: CompositionVerb[] }`.
+   */
+  app.post('/api/timeline/verbs', async (c) => {
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: 'Body must be JSON' }, 400);
+    }
+    try {
+      const verbs = z
+        .array(CompositionVerbSchema)
+        .min(1)
+        .parse((body as { verbs?: unknown }).verbs);
+      const { doc, ops } = await applyVerbs(verbs, makeVerbContext());
+      return c.json({ applied: ops.length, document: doc });
+    } catch (err) {
+      if (err instanceof ZodError) {
+        return c.json({ error: 'Validation failed', issues: err.issues }, 400);
+      }
+      // A lost write race is retriable (409); a stale/bad clip reference is a
+      // client condition (422) — neither is a server fault.
+      if (err instanceof WorkspaceBoundaryError) return c.json({ error: err.message }, 403);
+      if (err instanceof CompositionConflictError) return c.json({ error: err.message }, 409);
+      if (err instanceof CompositionOpError) return c.json({ error: err.message }, 422);
+      const message = err instanceof Error ? err.message : String(err);
+      return c.json({ error: message }, 500);
+    }
+  });
+
+  /**
+   * GET /api/timeline/exportable — dry-run the export compiler (pure, no FFmpeg)
+   * to report whether the document can render and, if not, the blocking reasons.
+   * The viewer surfaces this so a not-yet-renderable doc reads as such, not broken.
+   */
+  app.get('/api/timeline/exportable', async (c) => {
+    const comp = await readComposition();
+    const media = await buildMediaMap();
+    return c.json(checkExportable(comp, media, getWorkspace()));
+  });
+
+  /**
+   * GET /api/timeline/frame?at=<sec> — the composited frame at <sec>, rendered
+   * through the REAL export compiler (buildFrameAtPlan) so the preview can't
+   * diverge from the export. Returns image/jpeg; 422 with the reason when the doc
+   * can't render a frame there (gap, past the end, an unsupported clip).
+   */
+  app.get('/api/timeline/frame', async (c) => {
+    const atSec = Number(c.req.query('at') ?? '0');
+    if (Number.isNaN(atSec)) return c.json({ error: 'at must be a number' }, 400);
+    const output = newOutputPath('timeline-frame', 'jpg');
+    // Per-request tag so this preview's intermediate segments can't collide with
+    // a concurrent export's — both run unsynchronized `ffmpeg -y` in the workspace.
+    const tag = `frame-${randomBytes(4).toString('hex')}`;
+    try {
+      const comp = await readComposition();
+      const media = await buildMediaMap();
+      const plan = buildFrameAtPlan(comp, { media, dir: getWorkspace(), output, tag }, atSec);
+      const result = await runPlan(plan);
+      const jpeg = await readFile(result.output);
+      await unlink(result.output).catch(() => {}); // transient preview frame
+      return c.body(jpeg, 200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'no-store' });
+    } catch (err) {
+      await unlink(output).catch(() => {});
+      if (err instanceof CompileError) return c.json({ error: err.message }, 422);
+      // Not a document problem — a transient render failure (e.g. an FFmpeg
+      // hiccup). Surface it as retryable instead of leaking a raw 500.
+      const message = err instanceof Error ? err.message : String(err);
+      return c.json({ error: message }, 503);
+    }
+  });
+
+  /**
+   * GET /api/media/thumb?mediaId=&t=&h= — a single small still from a SOURCE media
+   * file (not the composited timeline), for the timeline filmstrip. Each thumb is
+   * keyed by (mediaId, t, h) and cached under the workspace, so the row of frames a
+   * clip shows is generated once and then served from disk. Cheap: one fast
+   * input-seek frame extract per cache miss.
+   */
+  app.get('/api/media/thumb', async (c) => {
+    const mediaId = c.req.query('mediaId') ?? '';
+    const t = Number(c.req.query('t') ?? '0');
+    const h = Math.min(Math.max(Math.round(Number(c.req.query('h') ?? '48')), 16), 240);
+    if (!mediaId || Number.isNaN(t) || t < 0)
+      return c.json({ error: 'mediaId and t≥0 required' }, 400);
+
+    const thumbsDir = resolve(getWorkspace(), '.thumbs');
+    const safeKey = `${mediaId}-${t.toFixed(2)}-${h}`.replace(/[^\w.-]/g, '_');
+    const out = resolve(thumbsDir, `${safeKey}.jpg`);
+
+    const serve = async () =>
+      c.body(await readFile(out), 200, {
+        'Content-Type': 'image/jpeg',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      });
+
+    // Cache hit — the file's existence means this mediaId was already validated.
+    if (existsSync(out)) return serve();
+
+    const info = (await buildMediaMap()).get(mediaId as MediaId);
+    if (!info) return c.json({ error: `Unknown media: ${mediaId}` }, 404);
+    try {
+      await mkdir(thumbsDir, { recursive: true });
+      // Generate to a unique temp path then atomically rename, so concurrent
+      // requests for the same thumb never serve a half-written file.
+      const tmp = resolve(thumbsDir, `${safeKey}.${randomBytes(4).toString('hex')}.tmp.jpg`);
+      await runFfmpeg(buildThumbnailArgs({ input: info.path, output: tmp, atSec: t, height: h }));
+      await rename(tmp, out);
+      return serve();
+    } catch (err) {
+      // A non-thumbnailable source (e.g. audio-only) or a transient FFmpeg failure
+      // — the clip just falls back to its gradient block. Clean error, not a 500.
+      const message = err instanceof Error ? err.message : String(err);
+      return c.json({ error: message }, 422);
+    }
+  });
+
+  /**
+   * POST /api/timeline/export — compile the whole document to a rendered file and
+   * log it to the session so it appears in Outputs and is playable. Returns the
+   * op id + output path.
+   */
+  app.post('/api/timeline/export', async (c) => {
+    const comp = await readComposition();
+    const media = await buildMediaMap();
+    const output = newOutputPath('timeline-export', 'mp4');
+    try {
+      const plan = compileTimeline(comp, { media, dir: getWorkspace(), output });
+      const result = await runPlan(plan);
+      const entry = await appendOp({
+        tool: 'timeline_export',
+        args: { rev: comp.rev },
+        result: { path: result.output, durationSec: plan.durationSec },
+      });
+      return c.json({ id: entry.id, output: result.output, durationSec: plan.durationSec });
+    } catch (err) {
+      if (err instanceof CompileError) return c.json({ error: err.message }, 422);
+      // A render failure (not a bad document) — clean retryable error, not a raw 500.
+      const message = err instanceof Error ? err.message : String(err);
+      return c.json({ error: message }, 503);
+    }
+  });
+
+  /** POST /api/timeline/undo — undo the most recent document edit (op-log). */
+  app.post('/api/timeline/undo', async (c) => {
+    const { undone, label } = await undoLastDocOp();
+    return c.json({ undone, label: label ?? null });
+  });
+
+  /** POST /api/timeline/redo — redo the most recently undone document edit. */
+  app.post('/api/timeline/redo', async (c) => {
+    const { redone, label } = await redoDocOp();
+    return c.json({ redone, label: label ?? null });
+  });
+
+  /** GET /api/timeline/history — undo/redo availability for the doc op-log. */
+  app.get('/api/timeline/history', async (c) => {
+    const log = await readDocOpLog();
+    return c.json({
+      canUndo: log.cursor > 0,
+      canRedo: log.cursor < log.entries.length,
+    });
+  });
+
+  /**
+   * Session safety endpoints. These intentionally live outside the
+   * /api/tools/:name registry because snapshot/undo are meta-operations on
+   * the session log itself — they shouldn't appear as ops *in* the log.
+   */
+
+  /** POST /api/session/snapshot — body: { label?: string }. */
+  app.post('/api/session/snapshot', async (c) => {
+    let body: { label?: unknown };
+    try {
+      body = (await c.req.json()) as { label?: unknown };
+    } catch {
+      body = {};
+    }
+    const label = typeof body.label === 'string' && body.label.length > 0 ? body.label : undefined;
+    try {
+      const result = await snapshot({ label });
+      return c.json(result);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return c.json({ error: message }, 400);
+    }
+  });
+
+  /**
+   * POST /api/session/undo — body: { snapshotLabel?: string }. Pops the
+   * last op when label is absent, or restores the named snapshot otherwise.
+   */
+  app.post('/api/session/undo', async (c) => {
+    let body: { snapshotLabel?: unknown };
+    try {
+      body = (await c.req.json()) as { snapshotLabel?: unknown };
+    } catch {
+      body = {};
+    }
+    const snapshotLabel =
+      typeof body.snapshotLabel === 'string' && body.snapshotLabel.length > 0
+        ? body.snapshotLabel
+        : undefined;
+    try {
+      const result = await undo({ snapshotLabel });
+      return c.json(result);
+    } catch (err) {
+      // A corrupt snapshot is a recoverable bad-input condition, not a server
+      // fault — surface it as a 409 with the path, like the other read paths.
+      if (err instanceof SessionCorruptError) {
+        return c.json({ error: err.message, path: err.path, corrupt: true }, 409);
+      }
+      const message = err instanceof Error ? err.message : String(err);
+      // "nothing to undo" / "snapshot not found" → 400, server faults → 500.
+      const status = /empty|nothing|not found/i.test(message) ? 400 : 500;
+      return c.json({ error: message }, status);
+    }
+  });
+
+  /**
+   * GET /api/session/snapshots — list of available labels. We just read the
+   * filenames; reading each file to count entries would be wasted I/O for
+   * the header dropdown's purposes.
+   */
+  app.get('/api/session/snapshots', async (c) => {
+    const dir = snapshotsDir();
+    if (!existsSync(dir)) return c.json({ snapshots: [] });
+    const files = await readdir(dir);
+    const labels = files
+      .filter((f) => f.endsWith('.json'))
+      .map((f) => f.replace(/\.json$/, ''))
+      .sort();
+    return c.json({ snapshots: labels });
+  });
+
+  // ─── Duration probe (Timeline scrub slider) ───────────────────────
+
+  // In-memory cache: session entries are append-only and clip files don't
+  // change, so a duration we measured once stays valid for the lifetime
+  // of the server.
+  const durationCache = new Map<string, number>();
+
+  /**
+   * GET /api/duration/:opId — { durationSec } for the op's playable file.
+   * Used by the Timeline scrub slider so each card knows its range.
+   */
+  app.get('/api/duration/:opId', async (c) => {
+    const opId = c.req.param('opId');
+    const cached = durationCache.get(opId);
+    if (cached !== undefined) return c.json({ durationSec: cached });
+
+    const resolved = await resolveOpEntry(opId);
+    if (resolved.kind === 'corrupt') {
+      return c.json(
+        { error: resolved.error.message, path: resolved.error.path, corrupt: true },
+        409,
+      );
+    }
+    if (resolved.kind === 'notfound') return c.json({ error: `No op ${opId}` }, 404);
+    const entry = resolved.entry;
+
+    const path = playablePathOf(entry);
+    if (!path || !existsSync(path)) {
+      return c.json({ error: `No playable path for op ${opId}` }, 404);
+    }
+    try {
+      const probed = await probe(path);
+      durationCache.set(opId, probed.durationSec);
+      return c.json({ durationSec: probed.durationSec });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return c.json({ error: message }, 500);
+    }
+  });
+
+  /**
+   * Drag-drop / Browse upload. Streams each file into `<workspace>/imports/`
+   * under a uniquified name, runs `ingest` to probe + register it, and
+   * appends one session entry per file — mirroring exactly what
+   * `clip ingest <path>` does. Returns the new entries so the UI can refresh
+   * without waiting for the next poll.
+   *
+   * Filename safety: we take only `basename(file.name)` (no traversal),
+   * replace any remaining separators with underscores, and prefix with 4
+   * random hex bytes so concurrent uploads of the same name don't collide.
+   */
+  app.post('/api/import', async (c) => {
+    let body: Record<string, unknown>;
+    try {
+      body = await c.req.parseBody({ all: true });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return c.json({ error: `Could not parse upload: ${message}` }, 400);
+    }
+
+    // Accept either repeated `files` (preferred) or a single `file` key.
+    const raw = body.files ?? body.file;
+    const files: File[] = (Array.isArray(raw) ? raw : [raw]).filter(
+      (f): f is File => f instanceof File,
+    );
+    if (files.length === 0) {
+      return c.json(
+        { error: 'No files in upload — expected multipart field "files" or "file".' },
+        400,
+      );
+    }
+
+    const workspace = await ensureWorkspace();
+    const importsDir = resolve(workspace, 'imports');
+    await mkdir(importsDir, { recursive: true });
+
+    const imported: Array<{ entry: unknown; originalName: string; path: string }> = [];
+    try {
+      for (const file of files) {
+        const safeBase = basename(file.name).replace(/[/\\]/g, '_') || 'upload';
+        const id = randomBytes(4).toString('hex');
+        const destPath = resolve(importsDir, `${id}-${safeBase}`);
+
+        // Stream the upload to disk so multi-GB screen recordings don't sit
+        // in memory. `Readable.fromWeb` adapts the web ReadableStream that
+        // File.stream() returns into a Node stream `pipeline` can drive.
+        const nodeStream = Readable.fromWeb(
+          file.stream() as Parameters<typeof Readable.fromWeb>[0],
+        );
+        await pipeline(nodeStream, createWriteStream(destPath));
+
+        const result = await ingest({ path: destPath });
+        const entry = await appendOp({
+          tool: 'ingest',
+          args: { path: destPath },
+          result: result as unknown as Record<string, unknown>,
+        });
+        imported.push({ entry, originalName: file.name, path: destPath });
+      }
+      return c.json({ imported });
+    } catch (err) {
+      // Partial-success is possible — earlier files are already on disk and
+      // logged. Surface the failing filename so the user knows where it broke.
+      const message = err instanceof Error ? err.message : String(err);
+      return c.json({ error: message, imported }, 500);
+    }
+  });
+
+  /**
+   * Pull the on-disk path out of an op result, accounting for the different
+   * shapes each tool produces. Ingest hides its file under `result.ref.path`;
+   * split has two halves (we play the first); most others use `result.path`.
+   */
+  function playablePathOf(entry: { tool: string; result: Record<string, unknown> }): string | null {
+    if (entry.tool === 'ingest') {
+      const ref = entry.result.ref as { path?: unknown } | undefined;
+      return typeof ref?.path === 'string' ? ref.path : null;
+    }
+    if (typeof entry.result.path === 'string') return entry.result.path;
+    if (typeof entry.result.before === 'string') return entry.result.before;
+    return null;
+  }
+
+  /**
+   * Stream the output file recorded under an op. We resolve the path from
+   * `session.json` rather than accepting it from the client so the server
+   * never serves files outside the workspace, even though it's localhost-only.
+   */
+  app.get('/api/output/:opId', async (c) => {
+    const opId = c.req.param('opId');
+    const resolved = await resolveOpEntry(opId);
+    if (resolved.kind === 'corrupt') return c.text(resolved.error.message, 409);
+    if (resolved.kind === 'notfound') return c.text(`No op ${opId}`, 404);
+    const entry = resolved.entry;
+
+    const path = playablePathOf(entry);
+    if (!path) return c.text(`Op ${opId} has no playable output`, 404);
+    if (!existsSync(path)) return c.text(`Output file missing: ${path}`, 410);
+
+    const { size } = await stat(path);
+    const ext = path.split('.').pop()?.toLowerCase() ?? 'bin';
+    const mime =
+      ext === 'mp4' || ext === 'mov'
+        ? 'video/mp4'
+        : ext === 'webm'
+          ? 'video/webm'
+          : ext === 'jpg' || ext === 'jpeg'
+            ? 'image/jpeg'
+            : ext === 'png'
+              ? 'image/png'
+              : 'application/octet-stream';
+
+    // Hono on Node can stream via a ReadableStream from a file. For v0.1
+    // we use Node's createReadStream wrapped in a web stream.
+    const { createReadStream } = await import('node:fs');
+    const nodeStream = createReadStream(path);
+    const webStream = new ReadableStream({
+      start(controller) {
+        nodeStream.on('data', (chunk) => controller.enqueue(chunk as Uint8Array));
+        nodeStream.on('end', () => controller.close());
+        nodeStream.on('error', (err) => controller.error(err));
+      },
+      cancel() {
+        nodeStream.destroy();
+      },
+    });
+
+    return new Response(webStream, {
+      headers: {
+        'Content-Type': mime,
+        'Content-Length': String(size),
+      },
+    });
+  });
+
+  /**
+   * Generate a preview thumbnail for an op's output and return the JPEG.
+   * We re-call our `preview` tool — it's already idempotent for the same
+   * input + timecode, and the JPEG lives in the workspace afterward.
+   */
+  app.get('/api/preview/:opId', async (c) => {
+    const opId = c.req.param('opId');
+    const atSec = Number(c.req.query('atSec') ?? '0');
+
+    const resolved = await resolveOpEntry(opId);
+    if (resolved.kind === 'corrupt') return c.text(resolved.error.message, 409);
+    if (resolved.kind === 'notfound') return c.text(`No op ${opId}`, 404);
+    const entry = resolved.entry;
+
+    const path = playablePathOf(entry);
+    if (!path || !existsSync(path)) return c.text(`No preview-able output for op ${opId}`, 404);
+
+    const { path: jpegPath } = await preview({ input: path, atSec });
+    const { createReadStream } = await import('node:fs');
+    const { size } = await stat(jpegPath);
+    const nodeStream = createReadStream(jpegPath);
+    const webStream = new ReadableStream({
+      start(controller) {
+        nodeStream.on('data', (chunk) => controller.enqueue(chunk as Uint8Array));
+        nodeStream.on('end', () => controller.close());
+        nodeStream.on('error', (err) => controller.error(err));
+      },
+      cancel() {
+        nodeStream.destroy();
+      },
+    });
+    return new Response(webStream, {
+      headers: { 'Content-Type': 'image/jpeg', 'Content-Length': String(size) },
+    });
+  });
+
+  // ─── Static (built React app) ──────────────────────────────────────
+
+  const staticDir = findStaticDir();
+  if (staticDir) {
+    app.use(
+      '*',
+      serveStatic({
+        root: staticDir,
+        // Hono's serveStatic expects a relative root; we pass absolute via path resolver.
+        rewriteRequestPath: (path) => path,
+      }),
+    );
+    // SPA fallback: any non-asset path should serve index.html so React Router (if added later) works.
+    app.get('*', async (c) => {
+      const { readFile } = await import('node:fs/promises');
+      try {
+        const html = await readFile(resolve(staticDir, 'index.html'), 'utf-8');
+        return c.html(html);
+      } catch {
+        return c.text('UI assets not built. Run `pnpm build` first.', 500);
+      }
+    });
+  } else {
+    app.get('*', (c) =>
+      c.text(
+        'UI assets not found. Run `pnpm build` in the editor package (or `pnpm dev:ui` for dev).',
+        500,
+      ),
+    );
+  }
+
+  const server = serve({ fetch: app.fetch, hostname: '127.0.0.1', port });
+  const url = `http://127.0.0.1:${port}`;
+
+  if (options.openBrowser !== false) {
+    // Don't block server startup on browser-open failures (e.g. headless env).
+    open(url).catch(() => undefined);
+  }
+
+  return {
+    url,
+    port,
+    stop: () =>
+      new Promise<void>((resolveStop) => {
+        server.close(() => resolveStop());
+      }),
+  };
+}
