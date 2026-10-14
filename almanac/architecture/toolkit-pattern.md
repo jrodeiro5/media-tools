@@ -58,8 +58,8 @@ All tool functionality lives in toolkit classes under `src/media_tools/tools/`.
 Each toolkit is a class with `@staticmethod` methods that perform a specific
 category of media processing.
 
-The CLI ([CLI dispatch](../architecture/cli-dispatch)) and the MCP server
-([MCP server](../architecture/mcp-server)) are both thin dispatch layers over
+The CLI ([CLI dispatch](cli-dispatch)) and the MCP server
+([MCP server](mcp-server)) are both thin dispatch layers over
 these classes rather than independent implementations: a tool's behavior is
 defined once in a `<Name>Toolkit` class and exposed through both entrypoints.
 Adding or changing a tool therefore means editing one class and wiring two thin
@@ -69,7 +69,7 @@ only on transport (argparse vs. MCP).
 
 Each toolkit exports a `name` attribute (e.g. `"pdf"`) used for scoped server
 tagging. The toolkit classes are exported from `tools/__init__.py` [@tools-init].
-Toolkit methods call the shared helpers in [Utilities](../architecture/utilities).
+Toolkit methods call the shared helpers in [Utilities](utilities).
 
 ## Toolkit classes
 
@@ -183,9 +183,9 @@ To add a new toolkit:
 
 ## Related pages
 
-- [CLI dispatch](../architecture/cli-dispatch) — how `argparse` maps commands to
+- [CLI dispatch](cli-dispatch) — how `argparse` maps commands to
   toolkit methods.
-- [MCP server](../architecture/mcp-server) — how the same methods are
+- [MCP server](mcp-server) — how the same methods are
   registered as MCP tools and scoped servers.
-- [Refusals](../architecture/refusals) — the shared module that produces every
+- [Refusals](refusals) — the shared module that produces every
   toolkit refusal string and its stable error codes.

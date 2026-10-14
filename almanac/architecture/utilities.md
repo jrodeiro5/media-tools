@@ -53,6 +53,6 @@ timestamped format.
 
 ## Related pages
 
-- [Toolkit pattern](../architecture/toolkit-pattern) — the classes that
+- [Toolkit pattern](toolkit-pattern) — the classes that
   import these helpers and call them from every tool. They are the sole
   consumers, so changes here affect every tool in the repo.

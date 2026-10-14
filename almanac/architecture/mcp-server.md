@@ -22,7 +22,7 @@ clients (OpenWebUI, Claude Desktop, agent frameworks).
 
 `server.py` creates a single `FastMCP("Media Tools")` instance and registers
 all tools as `@mcp.tool` decorators [@server-py]. The underlying logic lives in
-the [Toolkit classes](../architecture/toolkit-pattern), which the server
+the [Toolkit classes](toolkit-pattern), which the server
 imports at module level. The server is configured with a
 description string that clients use to display available capabilities.
 

@@ -71,5 +71,5 @@ and shares no bytes with the omlx/LiteLLM models.
 
 - [Local TTS uses Kokoro](../decisions/local-tts-kokoro-not-chatterbox) — the
   TTS direction in depth.
-- [Toolkit pattern](../architecture/toolkit-pattern) — the AI/TTS toolkit
+- [Toolkit pattern](toolkit-pattern) — the AI/TTS toolkit
   dependencies and the server's lazy imports.

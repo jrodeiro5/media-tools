@@ -64,6 +64,6 @@ an inline string, which also gives that tool a stable code for free.
 
 ## Related
 
-- [Toolkit pattern](../architecture/toolkit-pattern) — the classes that
+- [Toolkit pattern](toolkit-pattern) — the classes that
   import `media_tools.refusals`.
-- [CLI dispatch](../architecture/cli-dispatch) and [MCP server](../architecture/mcp-server) — the entrypoints that wrap these refusal strings in `{"error": ...}` JSON.
+- [CLI dispatch](cli-dispatch) and [MCP server](mcp-server) — the entrypoints that wrap these refusal strings in `{"error": ...}` JSON.
