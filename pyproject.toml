@@ -109,5 +109,5 @@ exclude = [".venv"]
 [tool.uv]
 exclude-newer = "7 days"
 # CVE fixes newer than the 7-day cooldown; drop once they age out (2026-10-23)
-exclude-newer-package = { pyjwt = "2026-10-17T00:00:00Z" }
-override-dependencies = ["pillow>=12.3.0", "pyjwt>=2.14"]  # semgrep (dev) caps pyjwt<2.14
+exclude-newer-package = { pyjwt = "2026-10-17T00:00:00Z", mcp = "2026-10-17T00:00:00Z", anyio = "2026-10-17T00:00:00Z", typing-extensions = "2026-10-17T00:00:00Z" }
+override-dependencies = ["pillow>=12.3.0", "pyjwt>=2.14", "mcp>=1.30,<2"]  # semgrep (dev) pins pyjwt<2.14 and mcp==1.29.0
