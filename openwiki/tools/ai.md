@@ -22,9 +22,6 @@ sources:
     resource: repo://src/media_tools/tools/__init__.py
   - id: openwiki-source-4c98e0114ea62b3994f0a92a
     resource: repo://src/media_tools/tools/ai.py
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-20T15:47:08.433Z
 ---
 
 ## Overview

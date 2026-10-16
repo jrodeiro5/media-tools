@@ -7,9 +7,6 @@ description: "7 audio processing methods (5 exposed via CLI, 7 via MCP): convert
 resource: /src/media_tools/tools/audio.py
 tags: [audio, tools, pydub, ffmpeg]
 generated: { by: openwiki/local-ornith-35b, at: 2026-08-22T14:25:15.555Z }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-19T19:14:37.934Z
 sources:
   - id: openwiki-source-a032591a12d56d656efb799c
     resource: repo://src/media_tools/server.py

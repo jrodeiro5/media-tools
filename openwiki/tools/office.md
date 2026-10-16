@@ -6,9 +6,6 @@ title: Office Tools
 description: "2 Office document tools exposed via the MCP server and CLI: office_to_markdown (converts 14 Office/text formats to Markdown via firecrawl-anydoc) and office_to_pdf (converts Office documents to PDF via LibreOffice soffice headless)."
 resource: /src/media_tools/tools/office.py
 tags: [office, tools, anydoc, firecrawl-anydoc, LibreOffice, soffice]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-19T19:14:37.934Z
 sources:
   - id: openwiki-source-05ccef8d4cf1698187f20464
     resource: repo://pyproject.toml

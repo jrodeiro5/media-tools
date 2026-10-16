@@ -130,7 +130,7 @@ def run_mimo_ocr(input_path: str, output_path: str, api_key: str):
 
             messages: list[ChatCompletionUserMessageParam] = [{"role": "user", "content": image_parts}]
             response = client.chat.completions.create(
-                model="mimo-v2.5",
+                model="mimo-v2.6-flash",
                 messages=messages,
             )
             final_markdown.append(response.choices[0].message.content or "")

@@ -1,8 +1,8 @@
 {
-  "updatedAt": "2026-09-19T20:06:13.453Z",
+  "updatedAt": "2026-10-01T23:14:01.783Z",
   "command": "update",
   "gitHead": "a862592826c0a85638d67b165731d264cf2eece8",
-  "model": "local-ornith-35b",
+  "model": "xsub_mimo-v2.5",
   "status": "interrupted",
   "language": "en"
 }

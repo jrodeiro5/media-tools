@@ -14,7 +14,7 @@ openwiki:
   test_paths: []
   invariants: [Endpoint is built from LITELLM_URL env var, not from any tool argument; no API key or network egress required.]
   validation_commands: ["media-tools-server-tts"]
-generated: { by: "openwiki/0.5.2", at: "2026-09-19T19:14:37.934Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-20T19:00:50.561Z" }
 sources:
   - id: openwiki-source-05ccef8d4cf1698187f20464
     resource: repo://pyproject.toml
@@ -22,6 +22,9 @@ sources:
     resource: repo://src/media_tools/server.py
   - id: openwiki-source-30b3bd03b5a87d9d89e0da7b
     resource: repo://src/media_tools/tools/tts.py
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-19T19:14:37.934Z
 ---
 
 ## Overview

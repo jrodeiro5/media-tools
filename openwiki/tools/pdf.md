@@ -6,9 +6,6 @@ title: PDF Toolkit
 description: "26 PDF processing methods in PDFToolkit — 21 exposed via the CLI and 20 via the MCP server, with ocr and crop implemented but not wired to either interface. Covers merge, split, compress, text/image/structured/screenshots extraction, rotate, info, watermark, page numbers, protect/unlock, sign, fill form, compare, PDF/A, reorder/delete, Markdown export, PDF-to-DOCX, and redaction."
 resource: /src/media_tools/tools/pdf.py
 tags: [pdf, tools, pypdf, pdfplumber, pypdfium2, liteparse, pdf2docx, reportlab, Ghostscript, firecrawl, redaction]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-19T19:14:37.934Z
 sources:
   - id: openwiki-source-f24618d3fb91081293690cc3
     resource: repo://src/media_tools/cli.py
