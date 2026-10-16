@@ -15,6 +15,7 @@ Licenses (verified 2026-09-20):
 from __future__ import annotations
 
 import hashlib
+import os
 import urllib.request
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -23,7 +24,8 @@ if TYPE_CHECKING:
     import numpy as np
     from cv2.typing import MatLike
 
-MODEL_CACHE = Path.home() / ".cache" / "media-tools" / "models"
+# MEDIA_TOOLS_MODEL_DIR points at models baked into an image, so nothing downloads at run time.
+MODEL_CACHE = Path(os.environ.get("MEDIA_TOOLS_MODEL_DIR", Path.home() / ".cache" / "media-tools" / "models"))
 
 # key: (url, sha256, filename)
 ASSETS: dict[str, tuple[str, str, str]] = {

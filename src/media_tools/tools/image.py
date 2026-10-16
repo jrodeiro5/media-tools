@@ -162,6 +162,43 @@ class ImageToolkit:
         return f"Cropped to {output}"
 
     @staticmethod
+    def fill_background(input_path: str, output: str, color: str = "#ffffff") -> str:
+        """Put a solid colour behind the subject: transparent parts are filled with it.
+
+        An opaque image has its background removed first (U2-Net), so "black background" works on
+        any photo or logo in one call.
+        """
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+
+        try:
+            from PIL import ImageColor
+
+            rgb = ImageColor.getrgb(color)[:3]
+        except ValueError:
+            return f"Error: unknown colour {color!r}; use a name like 'lightblue' or a hex like '#add8e6'"
+        try:
+            img = Image.open(input_path).convert("RGBA")
+            if img.getchannel("A").getextrema()[0] == 255:
+                from rembg import remove
+
+                img = remove(img).convert("RGBA")
+            bg = Image.new("RGBA", img.size, (*rgb, 255))
+            bg.alpha_composite(img)
+            out = bg.convert("RGB") if Path(output).suffix.lower() in (".jpg", ".jpeg") else bg
+            out.save(output)
+            logger.info("Background %s → %s", color, output)
+        except Exception as exc:
+            logger.error("fill_background failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Background set to {color} → {output}"
+
+    @staticmethod
     def redact(input_path: str, output: str, left: int, top: int, right: int, bottom: int, mode: str = "fill") -> str:
         """Cover a rectangle (pixel coordinates): solid black fill (default) or pixelate.
 

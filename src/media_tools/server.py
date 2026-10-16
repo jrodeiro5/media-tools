@@ -469,6 +469,12 @@ def image_crop(input_path: str, output: str, left: int, top: int, right: int, bo
     return ImageToolkit.crop(input_path, output, left, top, right, bottom)
 
 
+@mcp.tool(name="image_fill_background", tags={"image"})
+def image_fill_background(input_path: str, output: str, color: str = "#ffffff") -> str:
+    """Put a solid colour (name or hex) as the background; removes the old background if there is one."""
+    return ImageToolkit.fill_background(input_path, output, color)
+
+
 @mcp.tool(name="image_redact", tags={"image"})
 def image_redact(input_path: str, output: str, left: int, top: int, right: int, bottom: int, mode: str = "fill") -> str:
     """Cover a rectangle of an image (pixel coordinates). mode: fill (solid black) or pixelate."""
@@ -962,14 +968,14 @@ def main():
         mcp.add_transform(BM25SearchTransform(max_results=5))
     port = int(os.environ.get("PORT", "8020"))
     host = os.environ.get("HOST", "127.0.0.1")
-    mcp.run(transport="streamable-http", host=host, port=port)
+    mcp.run(transport="streamable-http", host=host, port=port, stateless_http=True)
 
 
 def _run_scoped(tag: str):
     mcp.enable(tags={tag}, only=True)
     port = int(os.environ.get("PORT", "8020"))
     host = os.environ.get("HOST", "127.0.0.1")
-    mcp.run(transport="streamable-http", host=host, port=port)
+    mcp.run(transport="streamable-http", host=host, port=port, stateless_http=True)
 
 
 def main_pdf():

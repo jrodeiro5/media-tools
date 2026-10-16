@@ -51,4 +51,15 @@ with tempfile.TemporaryDirectory() as d:
     assert ImageToolkit.redact(src, pix, 0, 0, 64, 64, mode="pixelate").startswith("Redacted"), pix
     assert ImageToolkit.redact(src, pix, 50, 50, 10, 10).startswith("Error"), "empty area"
     assert ImageToolkit.redact(src, pix, 0, 0, 5, 5, mode="nope").startswith("Error"), "bad mode"
+    from PIL import Image as _I
+
+    cut = str(Path(d) / "cut.png")
+    half = _I.new("RGBA", (8, 8), (255, 0, 0, 255))
+    half.paste((0, 0, 0, 0), (0, 0, 4, 8))
+    half.save(cut)
+    fb = str(Path(d) / "fb.png")
+    assert ImageToolkit.fill_background(cut, fb, "lightblue").startswith("Background"), fb
+    assert _I.open(fb).getpixel((1, 1)) == (173, 216, 230, 255)
+    assert _I.open(fb).getpixel((6, 1)) == (255, 0, 0, 255)
+    assert ImageToolkit.fill_background(cut, fb, "notacolour").startswith("Error"), "bad colour"
 print("ok")
