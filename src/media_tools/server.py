@@ -854,15 +854,18 @@ def pdf_redact(
     output: str,
     text_patterns: list[str] | None = None,
     rect_areas: list[dict] | None = None,
+    mode: str = "fill",
 ) -> str:
-    """Redact (black out) sensitive information from PDF.
+    """Redact sensitive information from PDF: mode fill (black) or pixelate. The text underneath is removed.
 
     text_patterns: list of text strings to redact
     rect_areas: list of {x, y, width, height} to redact
     """
     from media_tools.tools.pdf import PDFToolkit
 
-    return PDFToolkit.redact(input_path, output, text_patterns, rect_areas)
+    if mode not in ("fill", "pixelate"):
+        return "Error: mode must be 'fill' or 'pixelate'"
+    return PDFToolkit.redact(input_path, output, text_patterns, rect_areas, mode)
 
 
 @mcp.tool(name="pdf_salvage", tags={"pdf"})

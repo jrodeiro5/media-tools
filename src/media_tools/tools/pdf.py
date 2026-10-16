@@ -1730,8 +1730,9 @@ class PDFToolkit:
         output: str,
         text_patterns: list[str] | None = None,
         rect_areas: list[dict] | None = None,
+        mode: str = "fill",
     ) -> str:
-        """Redact (black out) sensitive information from PDF.
+        """Redact (black out, or pixelate with mode="pixelate") sensitive information from PDF.
 
         Pages with redactions are rasterized (144 dpi) and rewritten as image-only
         pages, so the redacted text is truly removed, but those pages lose all
@@ -1754,7 +1755,7 @@ class PDFToolkit:
 
         try:
             import pypdf
-            from PIL import ImageDraw
+            from PIL import Image, ImageDraw
 
             # Collect per-page rectangles (top-left origin, points) to black out.
             page_rects: dict[int, list[tuple[float, float, float, float]]] = {}
@@ -1788,7 +1789,15 @@ class PDFToolkit:
                 img = doc[page_no].render(scale=scale).to_pil().convert("RGB")
                 draw = ImageDraw.Draw(img)
                 for x, y, w, h in rects:
-                    draw.rectangle([x * scale, y * scale, (x + w) * scale, (y + h) * scale], fill="black")
+                    box = (int(x * scale), int(y * scale), int((x + w) * scale), int((y + h) * scale))
+                    if mode == "pixelate" and box[2] > box[0] and box[3] > box[1]:
+                        roi = img.crop(box)
+                        small = roi.resize(
+                            (max(1, roi.width // 16), max(1, roi.height // 16)), Image.Resampling.BILINEAR
+                        )
+                        img.paste(small.resize(roi.size, Image.Resampling.NEAREST), box)
+                    else:
+                        draw.rectangle(box, fill="black")
                 buf = io.BytesIO()
                 img.save(buf, format="PDF", resolution=72 * scale)
                 buf.seek(0)

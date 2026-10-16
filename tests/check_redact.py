@@ -22,4 +22,13 @@ with tempfile.TemporaryDirectory() as d:
         assert "TOPSECRET" not in (pdf.pages[0].extract_text() or "")
         assert "public" in (pdf.pages[1].extract_text() or "")
     assert b"TOPSECRET" not in Path(out).read_bytes()
+
+    pix = str(Path(d) / "pix.pdf")
+    res = PDFToolkit.redact(
+        src, pix, rect_areas=[{"page": 0, "x": 90, "y": 120, "width": 200, "height": 40}], mode="pixelate"
+    )
+    assert res.startswith("Redacted"), res
+    with pdfplumber.open(pix) as pdf:
+        assert "TOPSECRET" not in (pdf.pages[0].extract_text() or ""), "pixelate must remove the text too"
+        assert "public" in (pdf.pages[1].extract_text() or "")
 print("ok")
