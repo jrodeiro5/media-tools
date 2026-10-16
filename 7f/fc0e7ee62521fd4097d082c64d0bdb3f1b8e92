@@ -1,0 +1,19 @@
+pyproject.toml
+  s_d5809ca8528fc6::t_722ca7cd9b25ba 95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7ffc0e7ee62521fd4097d082c64d0bdb3f1b8e92",
+  "prompts": {},
+  "sessions": {
+    "s_d5809ca8528fc6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8adf1e60-03cb-40e0-9396-68765eb188ac",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "jrodeiro5 <jrodeiro.dev@gmail.com>"
+    }
+  }
+}
