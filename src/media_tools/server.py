@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
+from fastmcp.server.middleware import Middleware, MiddlewareContext
 
 from media_tools.tools import (
     AudioToolkit,
@@ -18,6 +21,26 @@ from media_tools.utils import setup_logging
 
 setup_logging(os.environ.get("LOG_LEVEL", "INFO"))
 
+
+class Limits(Middleware):
+    """At most MEDIA_TOOLS_CONCURRENCY tool calls at once, each answered within MEDIA_TOOLS_TIMEOUT s.
+
+    ponytail: a timed-out call's worker thread keeps running to the end (threads cannot be killed),
+    so the cap bounds waiting callers, not CPU; process-per-call if a runaway call must be stopped.
+    """
+
+    def __init__(self, concurrency: int, timeout: float) -> None:
+        self.slots = asyncio.Semaphore(concurrency)
+        self.timeout = timeout
+
+    async def on_call_tool(self, context: MiddlewareContext, call_next):  # noqa: ANN001, ANN201
+        async with self.slots:
+            try:
+                return await asyncio.wait_for(call_next(context), self.timeout)
+            except TimeoutError as exc:
+                raise ToolError(f"Error: {context.message.name} took longer than {self.timeout:.0f} s") from exc
+
+
 mcp = FastMCP(
     "Media Tools",
     instructions=(
@@ -27,6 +50,11 @@ mcp = FastMCP(
         "Office-to-Markdown, AI-powered document analysis."
     ),
 )
+
+if os.environ.get("MEDIA_TOOLS_CONCURRENCY") or os.environ.get("MEDIA_TOOLS_TIMEOUT"):
+    mcp.add_middleware(
+        Limits(int(os.environ.get("MEDIA_TOOLS_CONCURRENCY", "4")), float(os.environ.get("MEDIA_TOOLS_TIMEOUT", "120")))
+    )
 
 
 @mcp.tool(name="pdf_merge", tags={"pdf"})

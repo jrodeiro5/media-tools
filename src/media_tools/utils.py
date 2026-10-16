@@ -11,6 +11,27 @@ from pathlib import Path
 
 logger = logging.getLogger("media_tools")
 
+# Hardening for a shared deployment, all off unless set:
+# MEDIA_TOOLS_ROOT confines every input and output to one folder and disables URL inputs (SSRF);
+# MEDIA_TOOLS_MAX_BYTES caps an input file's size; MEDIA_TOOLS_MAX_PIXELS caps decoded images
+# (Pillow raises DecompressionBombError above twice the cap).
+ROOT = os.environ.get("MEDIA_TOOLS_ROOT")
+MAX_BYTES = int(os.environ.get("MEDIA_TOOLS_MAX_BYTES", "0"))
+if os.environ.get("MEDIA_TOOLS_MAX_PIXELS"):
+    from PIL import Image
+
+    Image.MAX_IMAGE_PIXELS = int(os.environ["MEDIA_TOOLS_MAX_PIXELS"])
+
+
+def outside_root(path: str) -> str | None:
+    """Error string when MEDIA_TOOLS_ROOT is set and path (symlinks resolved) is not under it."""
+    if not ROOT:
+        return None
+    root = Path(ROOT).resolve()
+    if not Path(path).resolve().is_relative_to(root):
+        return f"path outside {ROOT}: {path}"
+    return None
+
 
 def setup_logging(level: str = "INFO") -> None:
     """Configure root logger for the media-tools package."""
@@ -36,9 +57,13 @@ def validate_input(path: str, label: str = "input") -> str | None:
     if not path or not path.strip():
         return f"{label} path is empty"
 
-    # Allow URLs through (firecrawl, etc.)
+    # Allow URLs through (firecrawl, etc.), unless confined to a root
     if path.startswith(("http://", "https://")):
-        return None
+        return f"{label} URLs are disabled (MEDIA_TOOLS_ROOT is set)" if ROOT else None
+
+    err = outside_root(path)
+    if err:
+        return f"{label} {err}"
 
     # Path traversal check
     parts = Path(path).parts
@@ -52,12 +77,17 @@ def validate_input(path: str, label: str = "input") -> str | None:
         return f"{label} path is not a file: {path}"
     if not os.access(path, os.R_OK):
         return f"{label} path is not readable: {path}"
+    if MAX_BYTES and p.stat().st_size > MAX_BYTES:
+        return f"{label} file over {MAX_BYTES} bytes: {path}"
 
     return None
 
 
 def validate_output_dir(path: str, label: str = "output") -> str | None:
     """Return an error string if the output directory is unwritable, else None."""
+    err = outside_root(path)
+    if err:
+        return f"{label} {err}"
     p = Path(path)
     parent = p.parent if p.suffix else p
 
