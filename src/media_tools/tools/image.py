@@ -162,6 +162,41 @@ class ImageToolkit:
         return f"Cropped to {output}"
 
     @staticmethod
+    def redact(input_path: str, output: str, left: int, top: int, right: int, bottom: int, mode: str = "fill") -> str:
+        """Cover a rectangle (pixel coordinates): solid black fill (default) or pixelate.
+
+        Fill removes the pixels; pixelate keeps a coarse version and is not safe for text.
+        """
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+        if mode not in ("fill", "pixelate"):
+            return "Error: mode must be 'fill' or 'pixelate'"
+
+        try:
+            img: Image.Image = Image.open(input_path)
+            box = (max(0, left), max(0, top), min(img.width, right), min(img.height, bottom))
+            if box[0] >= box[2] or box[1] >= box[3]:
+                return f"Error: empty area {box} for image {img.width}x{img.height}"
+            if mode == "fill":
+                fill = (0, 0, 0, 255) if img.mode in ("RGBA", "LA") else 0
+                img.paste(fill, box)
+            else:
+                roi = img.crop(box)
+                small = roi.resize((max(1, roi.width // 16), max(1, roi.height // 16)), Image.Resampling.BILINEAR)
+                img.paste(small.resize(roi.size, Image.Resampling.NEAREST), box)
+            img.save(output)
+            logger.info("Redacted %s (%s) → %s", box, mode, output)
+        except Exception as exc:
+            logger.error("redact failed: %s", exc)
+            return f"Error: {exc}"
+
+        return f"Redacted area {box} ({mode}) → {output}"
+
+    @staticmethod
     def rotate(input_path: str, output: str, angle: int = 90) -> str:
         """Rotate image by angle (90, 180, 270)."""
         err = validate_input(input_path)

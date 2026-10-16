@@ -42,4 +42,13 @@ with tempfile.TemporaryDirectory() as d:
     for f in res["files"]:
         assert Path(str(f["path"])).is_file(), f
     assert Path(str(res["manifest"])).is_file()
+    red = str(Path(d) / "red.png")
+    assert ImageToolkit.redact(src, red, 10, 10, 30, 30).startswith("Redacted"), red
+    rimg = Image.open(red).convert("RGB")
+    assert rimg.getpixel((20, 20)) == (0, 0, 0)
+    assert rimg.getpixel((40, 40)) == grad.getpixel((40, 40))  # outside untouched
+    pix = str(Path(d) / "pix.png")
+    assert ImageToolkit.redact(src, pix, 0, 0, 64, 64, mode="pixelate").startswith("Redacted"), pix
+    assert ImageToolkit.redact(src, pix, 50, 50, 10, 10).startswith("Error"), "empty area"
+    assert ImageToolkit.redact(src, pix, 0, 0, 5, 5, mode="nope").startswith("Error"), "bad mode"
 print("ok")

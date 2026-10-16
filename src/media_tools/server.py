@@ -469,6 +469,12 @@ def image_crop(input_path: str, output: str, left: int, top: int, right: int, bo
     return ImageToolkit.crop(input_path, output, left, top, right, bottom)
 
 
+@mcp.tool(name="image_redact", tags={"image"})
+def image_redact(input_path: str, output: str, left: int, top: int, right: int, bottom: int, mode: str = "fill") -> str:
+    """Cover a rectangle of an image (pixel coordinates). mode: fill (solid black) or pixelate."""
+    return ImageToolkit.redact(input_path, output, left, top, right, bottom, mode)
+
+
 @mcp.tool(name="image_info", tags={"image"})
 def image_info(input_path: str) -> str:
     """Get image metadata: format, dimensions, mode, file size."""
