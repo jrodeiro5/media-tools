@@ -355,6 +355,50 @@ class PDFToolkit:
             return f"Error: {exc}"
 
     @staticmethod
+    def ocr_pdf(input_path: str, output: str, lang: str = "spa", dpi: int = 200, min_chars: int = 50) -> str:
+        """Make a scanned PDF searchable: each page without text is rendered and run through tesseract,
+        which writes the scan with an invisible text layer on top. Pages that already have text
+        (>= min_chars characters) are kept as they are.
+        """
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+        try:
+            import pytesseract
+
+            with pdfplumber.open(input_path) as pdf:
+                has_text = [len((p.extract_text() or "").strip()) >= min_chars for p in pdf.pages]
+            if all(has_text):
+                return "Error: every page already has text; nothing to OCR"
+            reader = pypdf.PdfReader(input_path)
+            writer = pypdf.PdfWriter()
+            doc = pdfium.PdfDocument(input_path)
+            done = 0
+            for n, page in enumerate(reader.pages):
+                if has_text[n]:
+                    writer.add_page(page)
+                    continue
+                img = doc[n].render(scale=dpi / 72).to_pil().convert("RGB")
+                data = pytesseract.image_to_pdf_or_hocr(img, lang=lang, extension="pdf", config=f"--dpi {dpi}")
+                ocr_page = pypdf.PdfReader(io.BytesIO(data)).pages[0]
+                # Back to the original page size (tesseract sizes the page from the pixels and dpi).
+                ocr_page.scale_to(float(page.mediabox.width), float(page.mediabox.height))
+                writer.add_page(ocr_page)
+                done += 1
+            doc.close()
+            writer.write(output)
+            writer.close()
+        except pytesseract.TesseractNotFoundError:
+            return missing_binary("tesseract is needed to read scanned pages", "tesseract")
+        except Exception as exc:
+            logger.error("ocr_pdf failed: %s", exc)
+            return f"Error: {exc}"
+        return f"Searchable PDF ({done} pages read with OCR, lang {lang}) → {output}"
+
+    @staticmethod
     def ocr(
         input_path: str,
         output: str | None = None,
@@ -766,8 +810,8 @@ class PDFToolkit:
         )
 
     @staticmethod
-    def rotate(input_path: str, output: str, angle: int = 90) -> str:
-        """Rotate all pages in a PDF by a given angle."""
+    def rotate(input_path: str, output: str, angle: int = 90, pages: list[int] | None = None) -> str:
+        """Rotate pages of a PDF by a given angle. pages: 1-indexed page numbers; all pages if omitted."""
         err = validate_input(input_path)
         if err:
             return err
@@ -778,10 +822,15 @@ class PDFToolkit:
         try:
             reader = pypdf.PdfReader(input_path)
             writer = pypdf.PdfWriter()
+            wanted = set(pages or range(1, len(reader.pages) + 1))
+            bad = sorted(p for p in wanted if not 1 <= p <= len(reader.pages))
+            if bad:
+                return f"Error: the PDF has {len(reader.pages)} pages; no page {', '.join(map(str, bad))}"
 
-            for page in reader.pages:
+            for n, page in enumerate(reader.pages, 1):
                 new_page = writer.add_page(page)
-                new_page.rotate(angle)
+                if n in wanted:
+                    new_page.rotate(angle)
 
             writer.write(output)
             writer.close()

@@ -218,6 +218,36 @@ class ImageToolkit:
         return f"Background set to {color} → {output}"
 
     @staticmethod
+    def strip_metadata(input_path: str, output: str) -> str:
+        """Remove EXIF/XMP metadata (camera, date, GPS position). The EXIF orientation is applied to
+        the pixels first, so the photo does not turn sideways; the colour profile is kept.
+        """
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+        try:
+            from PIL import ImageOps
+
+            src = Image.open(input_path)
+            had = bool(src.getexif()) or "xmp" in src.info
+            img = ImageOps.exif_transpose(src)
+            clean = Image.new(img.mode, img.size)
+            clean.paste(img)
+            kwargs: dict[str, Any] = {}
+            if icc := src.info.get("icc_profile"):
+                kwargs["icc_profile"] = icc
+            if Path(output).suffix.lower() in (".jpg", ".jpeg"):
+                kwargs["quality"] = 95
+            clean.save(output, **kwargs)
+        except Exception as exc:
+            logger.error("strip_metadata failed: %s", exc)
+            return f"Error: {exc}"
+        return f"Metadata removed{'' if had else ' (there was none)'} → {output}"
+
+    @staticmethod
     def product_photo(
         input_path: str, output: str, size: int = 1200, margin: float = 0.08, color: str = "#ffffff"
     ) -> str:

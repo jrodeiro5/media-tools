@@ -88,9 +88,21 @@ def pdf_extract_images(input_path: str, output_dir: str, dpi: int = 150) -> str:
 
 
 @mcp.tool(name="pdf_rotate", tags={"pdf"})
-def pdf_rotate(input_path: str, output: str, angle: int = 90) -> str:
-    """Rotate all pages in a PDF by a given angle in degrees."""
-    return PDFToolkit.rotate(input_path, output, angle)
+def pdf_rotate(input_path: str, output: str, angle: int = 90, pages: list[int] | None = None) -> str:
+    """Rotate pages of a PDF by an angle in degrees. pages: 1-indexed page numbers; all if omitted."""
+    return PDFToolkit.rotate(input_path, output, angle, pages)
+
+
+@mcp.tool(name="pdf_crop", tags={"pdf"})
+def pdf_crop(input_path: str, output: str, left: float = 0, bottom: float = 0, right: float = 0, top: float = 0) -> str:
+    """Trim the margins of every page (points to cut from each edge)."""
+    return PDFToolkit.crop(input_path, output, left, bottom, right, top)
+
+
+@mcp.tool(name="pdf_ocr", tags={"pdf"})
+def pdf_ocr(input_path: str, output: str, lang: str = "spa", dpi: int = 200) -> str:
+    """Make a scanned PDF searchable: an invisible text layer over each page that has no text."""
+    return PDFToolkit.ocr_pdf(input_path, output, lang, dpi)
 
 
 @mcp.tool(name="pdf_info", tags={"pdf"})
@@ -501,6 +513,12 @@ def image_crop(input_path: str, output: str, left: int, top: int, right: int, bo
 def image_fill_background(input_path: str, output: str, color: str = "#ffffff") -> str:
     """Put a solid colour (name or hex) as the background; removes the old background if there is one."""
     return ImageToolkit.fill_background(input_path, output, color)
+
+
+@mcp.tool(name="image_strip_metadata", tags={"image"})
+def image_strip_metadata(input_path: str, output: str) -> str:
+    """Remove EXIF/XMP metadata (camera, date, GPS) without turning the photo sideways."""
+    return ImageToolkit.strip_metadata(input_path, output)
 
 
 @mcp.tool(name="image_product_photo", tags={"image"})
