@@ -23,6 +23,25 @@ SUPPORTED_FORMATS = {
     "avif",
 }
 
+# A real font at the requested size: the Linux image ships DejaVu (fonts-dejavu); macOS has these.
+FONT_PATHS = (
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/System/Library/Fonts/Helvetica.ttc",
+    "/Library/Fonts/Arial.ttf",
+)
+
+
+def _font(size: int) -> Any:
+    """First installed font at `size`; else Pillow's own scalable font (still sized, with accents)."""
+    from PIL import ImageFont
+
+    for path in FONT_PATHS:
+        try:
+            return ImageFont.truetype(path, size)
+        except OSError:
+            continue
+    return ImageFont.load_default(size=size)
+
 
 class ImageToolkit:
     name = "image"
@@ -303,22 +322,13 @@ class ImageToolkit:
             return err
 
         try:
-            from PIL import ImageDraw, ImageFont
+            from PIL import ImageDraw
 
             img: Image.Image = Image.open(input_path).convert("RGBA")
             txt_layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
             draw = ImageDraw.Draw(txt_layer)
 
-            # Try to load a font, fall back to default
-            try:
-                font: ImageFont.FreeTypeFont | ImageFont.ImageFont = ImageFont.truetype(
-                    "/System/Library/Fonts/Helvetica.ttc", font_size
-                )
-            except OSError:
-                try:
-                    font = ImageFont.truetype("/Library/Fonts/Arial.ttf", font_size)
-                except OSError:
-                    font = ImageFont.load_default()
+            font = _font(font_size)
 
             # Get text bounding box
             bbox = draw.textbbox((0, 0), text, font=font)
