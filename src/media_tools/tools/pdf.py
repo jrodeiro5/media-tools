@@ -1739,7 +1739,9 @@ class PDFToolkit:
         selectable text. Pages without redactions are left untouched.
         Rotated pages are not supported: rects are placed as if the page were unrotated.
 
-        text_patterns: list of text strings to redact
+        text_patterns: list of text strings to redact; each may span several words or lines and is
+            matched case-insensitively. A pattern that is not found is an error and nothing is written,
+            so a scanned page (no text layer) never reports a redaction it did not make.
         rect_areas: list of {x, y, width, height} to redact
         """
         err = validate_input(input_path)
@@ -1765,14 +1767,25 @@ class PDFToolkit:
                 x, y, w, h = rect.get("x", 0), rect.get("y", 0), rect.get("width", 100), rect.get("height", 50)
                 page_rects.setdefault(page_no, []).append((x, y, w, h))
 
+            found = dict.fromkeys(text_patterns or [], 0)
             if text_patterns:
                 with pdfplumber.open(input_path) as pdf:
                     for page_no, page in enumerate(pdf.pages):
                         for pattern in text_patterns:
-                            for word in page.extract_words():
-                                if pattern in word["text"]:
-                                    x0, top, x1, bottom = word["x0"], word["top"], word["x1"], word["bottom"]
+                            # search() matches across words and lines; one box per character covers
+                            # exactly the match, even when it wraps.
+                            for match in page.search(pattern, regex=False, case=False):
+                                found[pattern] += 1
+                                for ch in match["chars"]:
+                                    x0, top, x1, bottom = ch["x0"], ch["top"], ch["x1"], ch["bottom"]
                                     page_rects.setdefault(page_no, []).append((x0, top, x1 - x0, bottom - top))
+                missing = [p for p, n in found.items() if n == 0]
+                if missing:
+                    return (
+                        "Error: not found in the PDF text: "
+                        + ", ".join(repr(p) for p in missing)
+                        + ". Nothing was redacted. If the PDF is scanned (no text layer), mark the area instead."
+                    )
 
             reader = pypdf.PdfReader(input_path)
             writer = pypdf.PdfWriter()
@@ -1807,7 +1820,8 @@ class PDFToolkit:
             with open(output, "wb") as f:
                 writer.write(f)
             logger.info("Redacted PDF → %s", output)
-            return f"Redacted PDF → {output} (original stashed: ticket {ticket} at {stash_path})"
+            counts = "".join(f", {p}: {n}" for p, n in found.items()) or ": none, areas only"
+            return f"Redacted PDF → {output} (matches{counts}; original stashed: ticket {ticket} at {stash_path})"
         except Exception as exc:
             logger.error("redact failed: %s", exc)
             return f"Error: {exc}"

@@ -31,4 +31,21 @@ with tempfile.TemporaryDirectory() as d:
     with pdfplumber.open(pix) as pdf:
         assert "TOPSECRET" not in (pdf.pages[0].extract_text() or ""), "pixelate must remove the text too"
         assert "public" in (pdf.pages[1].extract_text() or "")
+
+    # A name of several words is one match, found case-insensitively, and the count is reported.
+    contract, red = str(Path(d) / "contract.pdf"), str(Path(d) / "red.pdf")
+    c = canvas.Canvas(contract)
+    c.drawString(72, 760, "Arrendador: Juan Perez Garcia, DNI 12345678Z")
+    c.drawString(72, 740, "Arrendataria: Ana Lopez")
+    c.save()
+    res = PDFToolkit.redact(contract, red, text_patterns=["juan perez", "12345678Z"])
+    assert res.startswith("Redacted") and "juan perez: 1" in res and "12345678Z: 1" in res, res
+    with pdfplumber.open(red) as pdf:
+        assert "Juan" not in (pdf.pages[0].extract_text() or "")
+
+    # A pattern that is not in the PDF is an error and nothing is written, never a silent success.
+    missing = str(Path(d) / "missing.pdf")
+    res = PDFToolkit.redact(contract, missing, text_patterns=["Juan Perez", "Nadie Existe"])
+    assert res.startswith("Error") and "Nadie Existe" in res, res
+    assert not Path(missing).exists()
 print("ok")
