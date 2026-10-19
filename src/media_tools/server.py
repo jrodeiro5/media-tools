@@ -70,9 +70,9 @@ def pdf_split(input_path: str, pages: str, output_dir: str, cover: bool = False)
 
 
 @mcp.tool(name="pdf_compress", tags={"pdf"})
-def pdf_compress(input_path: str, output: str, quality: int = 50) -> str:
-    """Compress a PDF to reduce file size."""
-    return PDFToolkit.compress(input_path, output, quality)
+def pdf_compress(input_path: str, output: str, quality: int = 70, max_side: int = 2000) -> str:
+    """Compress a PDF: photos re-encoded as JPEG and capped in size; keeps the original if not smaller."""
+    return PDFToolkit.compress(input_path, output, quality, max_side)
 
 
 @mcp.tool(name="pdf_extract_text", tags={"pdf"})

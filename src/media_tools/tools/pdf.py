@@ -244,8 +244,17 @@ class PDFToolkit:
             return f"Error: {exc}"
 
     @staticmethod
-    def compress(input_path: str, output: str, quality: int = 50) -> str:
-        """Compress a PDF (reduces internal stream size)."""
+    def compress(input_path: str, output: str, quality: int = 70, max_side: int = 2000) -> str:
+        """Compress a PDF: photos re-encoded as JPEG (`quality`) and capped at `max_side` px, content
+        streams deflated, duplicates merged.
+
+        Left as they are: scans in CCITT/JBIG2 (bilevel, already tiny and blurred by JPEG), CMYK and
+        images with transparency. If the result is not smaller, the original is kept.
+        """
+        import shutil
+
+        from PIL import Image
+
         err = validate_input(input_path)
         if err:
             return err
@@ -254,20 +263,42 @@ class PDFToolkit:
             return err
 
         try:
-            writer = pypdf.PdfWriter()
-            reader = pypdf.PdfReader(input_path)
-
-            for page in reader.pages:
-                writer.add_page(page).compress_content_streams()
-
-            writer.write(output)
+            writer = pypdf.PdfWriter(clone_from=input_path)
+            recoded = 0
+            for page in writer.pages:
+                page.compress_content_streams(level=9)
+                for image in page.images:
+                    obj = image.indirect_reference.get_object() if image.indirect_reference else None
+                    filters = obj.get("/Filter") if isinstance(obj, pypdf.generic.DictionaryObject) else None
+                    names = filters if isinstance(filters, list) else [filters]
+                    if any(str(f) in ("/CCITTFaxDecode", "/JBIG2Decode") for f in names):
+                        continue
+                    pil = image.image
+                    if pil is None or pil.mode not in ("RGB", "L"):
+                        continue  # CMYK, palette with alpha, transparency: not worth the risk
+                    if max(pil.size) > max_side:
+                        pil = pil.copy()
+                        pil.thumbnail((max_side, max_side), Image.Resampling.LANCZOS)
+                    image.replace(pil, quality=quality)
+                    recoded += 1
+            writer.compress_identical_objects(remove_duplicates=True, remove_unreferenced=True)
+            buf = io.BytesIO()
+            writer.write(buf)
             writer.close()
+            before = Path(input_path).stat().st_size
+            if buf.tell() >= before:
+                if Path(output).resolve() != Path(input_path).resolve():
+                    shutil.copyfile(input_path, output)
+                return f"Already compact ({before // 1024} KB): kept the original → {output}"
+            Path(output).write_bytes(buf.getvalue())
             logger.info("Compressed PDF → %s", output)
         except Exception as exc:
             logger.error("compress failed: %s", exc)
             return f"Error: {exc}"
 
-        return f"Compressed to {output}"
+        after = Path(output).stat().st_size
+        saved = round(100 * (1 - after / before))
+        return f"Compressed {before // 1024} KB → {after // 1024} KB (-{saved}%, {recoded} images) → {output}"
 
     @staticmethod
     def extract_text(input_path: str, output: str | None = None) -> str:
