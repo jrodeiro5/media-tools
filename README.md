@@ -73,7 +73,7 @@ Set `PORT` to change the port. To expose only one family of tools (and keep the 
 
 **PDF:** `pdf_merge` `pdf_split` `pdf_compress` `pdf_extract_text` `pdf_extract_images` `pdf_extract_tables` `pdf_tables_to_csv` `pdf_rotate` `pdf_info` `pdf_extract_structured` `pdf_extract_screenshots` `pdf_watermark` `pdf_page_numbers` `pdf_protect` `pdf_unlock` `images_to_pdf` `pdf_reorder_pages` `pdf_delete_pages` `pdf_sign` `pdf_fill_form` `pdf_compare` `pdf_to_a` `pdf_to_markdown` `pdf_to_docx` `pdf_redact` `returns_reclaim` `md_to_branded_pdf` `html_to_pdf` `pdf_salvage` `pdf_repair`
 
-**Image:** `image_convert` `image_resize` `image_compress` `image_crop` `image_rotate` `image_flip` `image_text` `image_border` `image_merge` `image_watermark` `image_collage` `image_blur` `image_ocr` `image_info` `image_remove_background` `image_apply_brand` `image_to_video` `image_export_social_pack` `image_grayscale` `image_sharpen` `image_circle_crop` `image_split_tiles` `image_upscale` `image_blur_faces`
+**Image:** `image_convert` `image_resize` `image_compress` `image_crop` `image_rotate` `image_flip` `image_text` `image_border` `image_merge` `image_watermark` `image_collage` `image_blur` `image_ocr` `image_info` `image_remove_background` `image_fill_background` `image_product_photo` `image_redact` `image_apply_brand` `image_to_video` `image_export_social_pack` `image_grayscale` `image_sharpen` `image_circle_crop` `image_split_tiles` `image_upscale` `image_blur_faces`
 
 **Audio:** `audio_convert` `audio_trim` `audio_fade` `audio_speed` `audio_merge` `audio_normalize` `audio_chunk_silence` `audio_transcribe` `audio_transcribe_chunks` `audio_to_srt` `audio_pad_to_duration` `audio_info` `audio_to_video`
 
@@ -103,7 +103,7 @@ media-tools pdf compress merged.pdf --output small.pdf
 media-tools --help
 ```
 
-The CLI covers most server tools, some under shorter names (`pdf reorder`, `video info`). Not in the CLI: the AI tools, `text_to_speech`, `pdf_redact`, `pdf_info`, `pdf_to_docx`, `pdf_extract_structured` / `_screenshots`, `image_remove_background`, `image_to_video`, `audio_to_video`, `video_extract_audio` and `video_extract_frames`.
+The CLI covers most server tools, some under shorter names (`pdf reorder`, `video info`). Not in the CLI: the AI tools, `text_to_speech`, `pdf_redact`, `pdf_info`, `pdf_to_docx`, `pdf_extract_structured` / `_screenshots`, `image_remove_background`, `image_product_photo`, `image_to_video`, `audio_to_video`, `video_extract_audio` and `video_extract_frames`.
 
 ## Requirements
 

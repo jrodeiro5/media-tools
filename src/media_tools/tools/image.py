@@ -218,6 +218,54 @@ class ImageToolkit:
         return f"Background set to {color} → {output}"
 
     @staticmethod
+    def product_photo(
+        input_path: str, output: str, size: int = 1200, margin: float = 0.08, color: str = "#ffffff"
+    ) -> str:
+        """E-commerce product shot: background removed (U2-Net) if the image has none, the object
+        cropped to its outline, scaled to fit and centred on a square canvas of `size` px with
+        `margin` (fraction of the side) on every side.
+        """
+        err = validate_input(input_path)
+        if err:
+            return err
+        err = validate_output_dir(output)
+        if err:
+            return err
+        if not 0 <= margin < 0.5:
+            return "Error: margin is a fraction of the side, between 0 and 0.5 (e.g. 0.08)"
+        try:
+            from PIL import ImageColor
+
+            rgb = ImageColor.getrgb(color)[:3]
+        except ValueError:
+            return f"Error: unknown colour {color!r}; use a name like 'white' or a hex like '#ffffff'"
+        try:
+            img = Image.open(input_path).convert("RGBA")
+            if img.getchannel("A").getextrema()[0] == 255:
+                from rembg import remove
+
+                img = remove(img).convert("RGBA")
+            # Faint halo pixels from the matting are not part of the object.
+            box = img.getchannel("A").point(lambda a: 255 if a > 8 else 0).getbbox()
+            if not box:
+                return "Error: no object found in the image"
+            obj = img.crop(box)
+            room = round(size * (1 - 2 * margin))
+            scale = room / max(obj.size)
+            obj = obj.resize(
+                (max(1, round(obj.width * scale)), max(1, round(obj.height * scale))), Image.Resampling.LANCZOS
+            )
+            canvas = Image.new("RGBA", (size, size), (*rgb, 255))
+            canvas.alpha_composite(obj, ((size - obj.width) // 2, (size - obj.height) // 2))
+            out = canvas.convert("RGB") if Path(output).suffix.lower() in (".jpg", ".jpeg") else canvas
+            out.save(output)
+            logger.info("Product photo → %s", output)
+        except Exception as exc:
+            logger.error("product_photo failed: %s", exc)
+            return f"Error: {exc}"
+        return f"Product photo {size}x{size} → {output}"
+
+    @staticmethod
     def redact(input_path: str, output: str, left: int, top: int, right: int, bottom: int, mode: str = "fill") -> str:
         """Cover a rectangle (pixel coordinates): solid black fill (default) or pixelate.
 

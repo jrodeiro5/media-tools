@@ -503,6 +503,14 @@ def image_fill_background(input_path: str, output: str, color: str = "#ffffff") 
     return ImageToolkit.fill_background(input_path, output, color)
 
 
+@mcp.tool(name="image_product_photo", tags={"image"})
+def image_product_photo(
+    input_path: str, output: str, size: int = 1200, margin: float = 0.08, color: str = "#ffffff"
+) -> str:
+    """Product shot for a shop: background removed, object cropped and centred on a square canvas."""
+    return ImageToolkit.product_photo(input_path, output, size, margin, color)
+
+
 @mcp.tool(name="image_redact", tags={"image"})
 def image_redact(input_path: str, output: str, left: int, top: int, right: int, bottom: int, mode: str = "fill") -> str:
     """Cover a rectangle of an image (pixel coordinates). mode: fill (solid black) or pixelate."""
