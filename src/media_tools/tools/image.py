@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import cache
 from pathlib import Path
 from typing import Any
 
@@ -41,6 +42,19 @@ def _font(size: int) -> Any:
         except OSError:
             continue
     return ImageFont.load_default(size=size)
+
+
+# The background model, named on purpose: rembg's own default can change between releases, and newer
+# ones point at bria-rmbg, which is CC BY-NC (not commercial). U2-Net is Apache-2.0 and baked into the
+# image. One session for the whole process: loading the model on every call costs seconds.
+REMBG_MODEL = "u2net"
+
+
+@cache
+def _rembg_session() -> Any:
+    from rembg import new_session
+
+    return new_session(REMBG_MODEL)
 
 
 class ImageToolkit:
@@ -205,7 +219,7 @@ class ImageToolkit:
             if img.getchannel("A").getextrema()[0] == 255:
                 from rembg import remove
 
-                img = remove(img).convert("RGBA")
+                img = remove(img, session=_rembg_session()).convert("RGBA")
             bg = Image.new("RGBA", img.size, (*rgb, 255))
             bg.alpha_composite(img)
             out = bg.convert("RGB") if Path(output).suffix.lower() in (".jpg", ".jpeg") else bg
@@ -274,7 +288,7 @@ class ImageToolkit:
             if img.getchannel("A").getextrema()[0] == 255:
                 from rembg import remove
 
-                img = remove(img).convert("RGBA")
+                img = remove(img, session=_rembg_session()).convert("RGBA")
             # Faint halo pixels from the matting are not part of the object.
             box = img.getchannel("A").point(lambda a: 255 if a > 8 else 0).getbbox()
             if not box:
@@ -859,7 +873,7 @@ class ImageToolkit:
             from rembg import remove
 
             img: Image.Image = Image.open(input_path)
-            result = remove(img, alpha_matting=alpha_matting)
+            result = remove(img, session=_rembg_session(), alpha_matting=alpha_matting)
 
             ext = Path(output).suffix.lower().lstrip(".")
             if ext in ("jpg", "jpeg") and result.mode == "RGBA":
