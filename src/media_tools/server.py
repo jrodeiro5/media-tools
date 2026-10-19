@@ -164,9 +164,9 @@ def pdf_page_numbers(
     input_path: str,
     output: str,
     position: str = "bottom-center",
-    format_str: str = "Page {page}",
+    format_str: str = "Página {page} de {total}",
 ) -> str:
-    """Add page numbers to all pages of a PDF."""
+    """Add page numbers to all pages of a PDF, on each page's own size and orientation. format_str: {page}, {total}."""
     return PDFToolkit.add_page_numbers(input_path, output, position, format_str)
 
 

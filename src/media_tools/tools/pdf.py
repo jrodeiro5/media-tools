@@ -108,6 +108,25 @@ def _rebuild_xref(raw: bytes) -> tuple[bytes | None, int, int, list[str]]:
     return bytes(out), len(seen), stripped, []
 
 
+def _stamp(page: Any, draw: Any) -> None:
+    """Draw an overlay on the page as it is shown: its own size and origin, rotation applied first.
+
+    `draw(canvas, width, height)` paints in the visible page's coordinates (origin bottom-left).
+    """
+    from reportlab.pdfgen import canvas
+
+    page.transfer_rotation_to_content()
+    box = page.cropbox
+    w, h = float(box.width), float(box.height)
+    packet = io.BytesIO()
+    c = canvas.Canvas(packet, pagesize=(w, h))
+    draw(c, w, h)
+    c.save()
+    packet.seek(0)
+    overlay = pypdf.PdfReader(packet).pages[0]
+    page.merge_transformed_page(overlay, pypdf.Transformation().translate(float(box.left), float(box.bottom)))
+
+
 class PDFToolkit:
     name = "pdf"
 
@@ -927,40 +946,33 @@ class PDFToolkit:
         if err:
             return err
 
+        if image_path:
+            err = validate_input(image_path)
+            if err:
+                return err
+
         try:
             reader = pypdf.PdfReader(input_path)
             writer = pypdf.PdfWriter()
 
             from reportlab.lib.colors import HexColor
-            from reportlab.lib.pagesizes import A4
-            from reportlab.pdfgen import canvas
 
-            w, h = A4
-
-            for page in reader.pages:
-                packet = io.BytesIO()
-                c = canvas.Canvas(packet, pagesize=A4)
+            def draw(c, w: float, h: float) -> None:
                 c.saveState()
                 c.translate(w / 2, h / 2)
                 c.rotate(angle)
                 c.setFillAlpha(opacity)
-
                 if text:
                     c.setFont("Helvetica", font_size)
                     c.setFillColor(HexColor(color))
-                    c.drawCentredString(0, 0, text)
-                elif image_path:
-                    img_err = validate_input(image_path)
-                    if img_err:
-                        return img_err
+                    # Centred on the glyphs' middle, not their baseline.
+                    c.drawCentredString(0, -font_size * 0.35, text)
+                else:
                     c.drawImage(image_path, -100, -100, width=200, height=200, mask="auto")
-
                 c.restoreState()
-                c.save()
-                packet.seek(0)
 
-                overlay = pypdf.PdfReader(packet)
-                page.merge_page(overlay.pages[0])
+            for page in reader.pages:
+                _stamp(page, draw)
                 writer.add_page(page)
 
             writer.write(output)
@@ -977,46 +989,46 @@ class PDFToolkit:
         input_path: str,
         output: str,
         position: str = "bottom-center",
-        format_str: str = "Page {page}",
+        format_str: str = "Página {page} de {total}",
     ) -> str:
-        """Add page numbers to all pages of a PDF."""
+        """Add page numbers to all pages of a PDF, placed on each page's own size and orientation.
+
+        format_str may use {page} and {total}.
+        """
         err = validate_input(input_path)
         if err:
             return err
         err = validate_output_dir(output)
         if err:
             return err
+        try:
+            format_str.format(page=1, total=1)
+        except (KeyError, IndexError, ValueError):
+            return "Error: format_str may only use {page} and {total}, e.g. 'Página {page} de {total}'"
 
         try:
             reader = pypdf.PdfReader(input_path)
             writer = pypdf.PdfWriter()
 
-            from reportlab.lib.pagesizes import A4
             from reportlab.lib.units import mm
-            from reportlab.pdfgen import canvas
 
-            w, h = A4
-            positions = {
-                "bottom-center": (w / 2, 15 * mm),
-                "bottom-left": (20 * mm, 15 * mm),
-                "bottom-right": (w - 20 * mm, 15 * mm),
-                "top-center": (w / 2, h - 15 * mm),
-                "top-left": (20 * mm, h - 15 * mm),
-                "top-right": (w - 20 * mm, h - 15 * mm),
-            }
-            x, y = positions.get(position, positions["bottom-center"])
-
+            total = len(reader.pages)
             for i, page in enumerate(reader.pages):
-                packet = io.BytesIO()
-                c = canvas.Canvas(packet, pagesize=A4)
-                c.setFont("Helvetica", 10)
-                page_num = format_str.format(page=i + 1, total=len(reader.pages))
-                c.drawString(x, y, page_num)
-                c.save()
-                packet.seek(0)
+                label = format_str.format(page=i + 1, total=total)
 
-                overlay = pypdf.PdfReader(packet)
-                page.merge_page(overlay.pages[0])
+                def draw(c, w: float, h: float, label: str = label) -> None:
+                    x = {"left": 20 * mm, "right": w - 20 * mm}.get(position.rsplit("-", 1)[-1], w / 2)
+                    y = h - 15 * mm if position.startswith("top") else 15 * mm
+                    c.setFont("Helvetica", 10)
+                    align = position.rsplit("-", 1)[-1]
+                    if align == "left":
+                        c.drawString(x, y, label)
+                    elif align == "right":
+                        c.drawRightString(x, y, label)
+                    else:
+                        c.drawCentredString(x, y, label)
+
+                _stamp(page, draw)
                 writer.add_page(page)
 
             writer.write(output)
