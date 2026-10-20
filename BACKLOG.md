@@ -2,6 +2,14 @@
 
 Scope: MCP+CLI tool gaps only. No web UI/hosting — that's a different product.
 
+## Pendiente: `image_upscale` no cabe junto a rembg en 2 GB (2026-10-20)
+
+Medido en el contenedor del Taller (límite 2 GB): un upscale x2 de una foto de 1,5 MP llega a 1,1 GB
+de pico y el modelo de rembg se queda residente en el proceso tras el primer uso (~1,5 GB de pico).
+El cerrojo `_INFERENCE_LOCK` evita que corran a la vez, pero el upscale tras un rembg sigue cayendo
+por OOM (código 137). Arreglo previsto: upscale por teselas con un poco de solape, para acotar la
+memoria al tamaño de la tesela y no al de la foto.
+
 ## Paridad confirmada 2026-09-20 (iLove 45 tools + TinyWow 214 media)
 
 Method: `firecrawl map` + homepage nav scrape, /tmp only, no repo writes.
