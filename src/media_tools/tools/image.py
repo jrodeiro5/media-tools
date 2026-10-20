@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from functools import cache
 from pathlib import Path
 from typing import Any
@@ -50,11 +51,26 @@ def _font(size: int) -> Any:
 REMBG_MODEL = "u2net"
 
 
+# One background removal at a time: two at once roughly double the memory (the 2 GB container of the
+# agent's e2e was OOM-killed when its warm-up overlapped a real call), and two first calls racing past
+# @cache would load the model twice.
+# ponytail: one process-wide lock; a small pool of sessions if concurrent throughput ever matters.
+_REMBG_LOCK = threading.Lock()
+
+
 @cache
 def _rembg_session() -> Any:
     from rembg import new_session
 
     return new_session(REMBG_MODEL)
+
+
+def _remove_background(img: Image.Image, **kwargs: Any) -> Image.Image:
+    from rembg import remove
+
+    with _REMBG_LOCK:
+        result: Image.Image = remove(img, session=_rembg_session(), **kwargs)
+    return result
 
 
 class ImageToolkit:
@@ -217,9 +233,7 @@ class ImageToolkit:
         try:
             img = Image.open(input_path).convert("RGBA")
             if img.getchannel("A").getextrema()[0] == 255:
-                from rembg import remove
-
-                img = remove(img, session=_rembg_session()).convert("RGBA")
+                img = _remove_background(img).convert("RGBA")
             bg = Image.new("RGBA", img.size, (*rgb, 255))
             bg.alpha_composite(img)
             out = bg.convert("RGB") if Path(output).suffix.lower() in (".jpg", ".jpeg") else bg
@@ -286,9 +300,7 @@ class ImageToolkit:
         try:
             img = Image.open(input_path).convert("RGBA")
             if img.getchannel("A").getextrema()[0] == 255:
-                from rembg import remove
-
-                img = remove(img, session=_rembg_session()).convert("RGBA")
+                img = _remove_background(img).convert("RGBA")
             # Faint halo pixels from the matting are not part of the object.
             box = img.getchannel("A").point(lambda a: 255 if a > 8 else 0).getbbox()
             if not box:
@@ -870,10 +882,8 @@ class ImageToolkit:
             return err
 
         try:
-            from rembg import remove
-
             img: Image.Image = Image.open(input_path)
-            result = remove(img, session=_rembg_session(), alpha_matting=alpha_matting)
+            result = _remove_background(img, alpha_matting=alpha_matting)
 
             ext = Path(output).suffix.lower().lstrip(".")
             if ext in ("jpg", "jpeg") and result.mode == "RGBA":
