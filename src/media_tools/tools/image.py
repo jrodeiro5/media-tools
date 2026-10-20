@@ -51,11 +51,12 @@ def _font(size: int) -> Any:
 REMBG_MODEL = "u2net"
 
 
-# One background removal at a time: two at once roughly double the memory (the 2 GB container of the
-# agent's e2e was OOM-killed when its warm-up overlapped a real call), and two first calls racing past
-# @cache would load the model twice.
+# One heavy inference at a time (background removal, upscale): a 2 GB container fits one, not two.
+# rembg peaks near 1.5 GB and an x2 upscale of a 1.5 MP photo near 1.1 GB; the agent's container was
+# OOM-killed when its warm-up overlapped a real call. It also stops two first calls racing past
+# @cache from loading the rembg model twice.
 # ponytail: one process-wide lock; a small pool of sessions if concurrent throughput ever matters.
-_REMBG_LOCK = threading.Lock()
+_INFERENCE_LOCK = threading.Lock()
 
 
 @cache
@@ -68,7 +69,7 @@ def _rembg_session() -> Any:
 def _remove_background(img: Image.Image, **kwargs: Any) -> Image.Image:
     from rembg import remove
 
-    with _REMBG_LOCK:
+    with _INFERENCE_LOCK:
         result: Image.Image = remove(img, session=_rembg_session(), **kwargs)
     return result
 
@@ -1051,7 +1052,9 @@ class ImageToolkit:
             img = cv2.imread(input_path)
             if img is None:
                 return f"Error: could not decode image: {input_path}"
-            cv2.imwrite(output, sr.upsample(img))
+            with _INFERENCE_LOCK:
+                up = sr.upsample(img)
+            cv2.imwrite(output, up)
             logger.info("Upscaled x%d → %s", scale, output)
         except RuntimeError as exc:
             return str(exc)
