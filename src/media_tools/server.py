@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import os
+import shutil
+import tempfile
+from pathlib import Path
 
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
@@ -17,7 +21,7 @@ from media_tools.tools import (
     PiiToolkit,
     VideoToolkit,
 )
-from media_tools.utils import setup_logging
+from media_tools.utils import ROOT, setup_logging
 
 setup_logging(os.environ.get("LOG_LEVEL", "INFO"))
 
@@ -1014,6 +1018,37 @@ def text_to_speech(
         audio_format=audio_format,
         language=language,
     )
+
+
+if os.environ.get("MEDIA_TOOLS_FILES_IN_CALL") == "1" and ROOT:
+
+    @mcp.tool(name="call_with_files", tags={"pdf", "image", "audio", "video", "office", "ai", "tts", "pii", "batch"})
+    async def call_with_files(tool: str, args: dict, files: dict[str, dict[str, str]], outputs: dict[str, str]) -> dict:
+        """Run `tool` for a client that shares no disk with this server (an agent in a cluster).
+
+        files: argument -> {"name": "photo.png", "b64": <base64>}, written under MEDIA_TOOLS_ROOT.
+        outputs: argument -> name of the file or folder the tool creates. Returns {"result": <the
+        tool's answer>, "files": {name: base64}} with every file those outputs hold.
+        """
+        if tool == "call_with_files":
+            raise ToolError("Error: call_with_files cannot call itself")
+        work = Path(tempfile.mkdtemp(dir=ROOT))
+        try:
+            call = dict(args)
+            for arg, f in files.items():
+                path = work / "in" / Path(f["name"]).name
+                path.parent.mkdir(exist_ok=True)
+                path.write_bytes(base64.b64decode(f["b64"]))
+                call[arg] = str(path)
+            made = {arg: work / "out" / Path(name).name for arg, name in outputs.items()}
+            (work / "out").mkdir()
+            call |= {arg: str(path) for arg, path in made.items()}
+            result = await mcp.call_tool(tool, call, run_middleware=False)
+            text = "".join(getattr(c, "text", "") for c in result.content)
+            found = [p for m in made.values() for p in ([m] if m.is_file() else sorted(m.glob("*")))]
+            return {"result": text, "files": {p.name: base64.b64encode(p.read_bytes()).decode() for p in found}}
+        finally:
+            shutil.rmtree(work, ignore_errors=True)
 
 
 def main():

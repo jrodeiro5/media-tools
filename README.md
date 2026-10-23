@@ -47,6 +47,8 @@ Point your client at it. For a client that reads an `mcpServers` block:
 
 Set `PORT` to change the port. To expose only one family of tools (and keep the client's context small), run a scoped server: `media-tools-server-pdf`, `-image`, `-audio`, `-video`, `-office`, `-ai` or `-tts`. Or set `MEDIA_TOOLS_SEARCH=1` on the full server to list just `search_tools` + `call_tool` (~330 tokens instead of ~13.7k) and let the agent find tools by query.
 
+For a client that shares no disk with the server (an agent in a cluster, behind an MCP gateway), set `MEDIA_TOOLS_FILES_IN_CALL=1` together with `MEDIA_TOOLS_ROOT`: the server adds `call_with_files(tool, args, files, outputs)`, which takes the input files as base64, runs the tool in a temporary folder under the root and returns the files it made as base64.
+
 ## Tools
 
 <table>
