@@ -1051,6 +1051,14 @@ if os.environ.get("MEDIA_TOOLS_FILES_IN_CALL") == "1" and ROOT:
             shutil.rmtree(work, ignore_errors=True)
 
 
+@mcp.custom_route("/healthz", methods=["GET"])
+async def healthz(request):  # noqa: ANN001, ANN201, ARG001
+    """Liveness/readiness for a cluster: the server is up (no tool is run)."""
+    from starlette.responses import PlainTextResponse
+
+    return PlainTextResponse("ok")
+
+
 def main():
     if os.environ.get("MEDIA_TOOLS_SEARCH") == "1":
         # 85 tools ≈ 13.7k tokens in tools/list; this exposes search_tools + call_tool (≈330).
