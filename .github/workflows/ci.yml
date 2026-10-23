@@ -33,6 +33,9 @@ jobs:
       - name: Sync dev environment
         run: uv sync --group dev --python ${{ matrix.python }}
 
+      - name: Audit dependencies
+        run: uv audit
+
       - name: Run pre-commit
         # gitleaks has its own workflow (needs the binary and staged changes)
         run: SKIP=gitleaks uvx pre-commit run --all-files

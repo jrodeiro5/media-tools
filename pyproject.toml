@@ -45,7 +45,6 @@ dev = [
     "bandit>=1.9.4",
     "ruff>=0.11",
     "vulture>=2.11",
-    "semgrep>=1.80",
     "radon>=6.0",
     "mypy>=1.14",
     "complexipy>=6.2",
@@ -108,6 +107,6 @@ exclude = [".venv"]
 
 [tool.uv]
 exclude-newer = "7 days"
-# CVE fixes newer than the 7-day cooldown; drop once they age out (2026-10-23)
-exclude-newer-package = { pyjwt = "2026-10-17T00:00:00Z", mcp = "2026-10-17T00:00:00Z", anyio = "2026-10-17T00:00:00Z", typing-extensions = "2026-10-17T00:00:00Z" }
-override-dependencies = ["pillow>=12.3.0", "pyjwt>=2.14", "mcp>=1.30,<2"]  # semgrep (dev) pins pyjwt<2.14 and mcp==1.29.0
+# CVE fixes newer than the 7-day cooldown; drop once they age out (2026-10-28)
+exclude-newer-package = { pyjwt = "2026-10-17T00:00:00Z", mcp = "2026-10-17T00:00:00Z", anyio = "2026-10-17T00:00:00Z", typing-extensions = "2026-10-17T00:00:00Z", pillow = "2026-10-17T00:00:00Z", pypdf = "2026-10-22T00:00:00Z", certifi = "2026-10-21T00:00:00Z" }
+override-dependencies = ["pillow>=13.0.0", "pyjwt>=2.14", "mcp>=1.30,<2"]  # CVE floors
