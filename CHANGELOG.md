@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Docker image pinned to `python:3.12-slim-trixie` (what `3.12-slim` already resolved to); the build fails unless `libbrotli1` carries the CVE-2026-111497 fix (`1.1.0-2+deb13u1`).
+
 ## 0.2.0 — 2026-09-20
 
 - `pdf2docx` (AGPL-3.0 via PyMuPDF) moved to the optional `docx` extra; `pdf_to_docx` falls back to LibreOffice without it.
