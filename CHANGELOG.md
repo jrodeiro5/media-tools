@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `filelock` 3.32.6 -> 4.2.4 (CVE-2026-112940; it comes with `tldextract` in the `pii` extra).
+
 - Docker image pinned to `python:3.12-slim-trixie` (what `3.12-slim` already resolved to); the build fails unless `libbrotli1` carries the CVE-2026-111497 fix (`1.1.0-2+deb13u1`).
 
 ## 0.2.0 — 2026-09-20
