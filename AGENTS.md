@@ -115,3 +115,27 @@ compartidos por todos los repos de la máquina: no los edites aquí.
 Atlas regenerates the entity doc from scans — hand-edits go below its
 `<!-- manual -->` marker only. Source: ~/dev/infra/atlas.
 <!-- atlas:end -->
+
+<!-- agents-md:begin (managed by the agentsmd-cinfo-es-helper skill, do not edit inside this block) -->
+## Company rules (agents-md)
+
+The rules below are maintained centrally at agentsmd.cinfo.es and stored in `agents-md/`.
+They are mandatory: read every file listed here before starting any task.
+Do not edit them locally; use the `agentsmd-cinfo-es-helper` skill to update them, and always run it before every git commit.
+
+@agents-md/ALWAYS-GENERIC.karpathy-no-overengineering.md
+@agents-md/ALWAYS-license-and-osslicenses.md
+@agents-md/ALWAYS-testing.md
+@agents-md/ALWAYS.auto_documentation.md
+@agents-md/ALWAYS.cibersecurity.md
+@agents-md/ALWAYS.docker.md
+@agents-md/ALWAYS.logging.md
+@agents-md/ALWAYS.main_agent_behaviour.md
+@agents-md/ALWAYS.mcp.md
+@agents-md/ALWAYS.project_structure.md
+@agents-md/ALWAYS.sonarqube.md
+<!-- agents-md:end -->
+
+## Naming decision (11-11-2026)
+
+The company rule asks for URLs, endpoints, API actions and identifiers in English. It applies to new code only: existing code and APIs are not renamed, to avoid the cost and risk of breaking clients (decision by Javier Rodeiro, as allowed by Bernardo Riveira on 10-11-2026).
